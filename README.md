@@ -79,3 +79,4 @@ src/
 ## 📄 Лицензия
 
 MIT License
+
