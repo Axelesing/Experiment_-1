@@ -32,10 +32,20 @@ export class ParticleEngine {
 
   constructor(config: ParticleConfig) {
     this.config = config;
+    // Don't initialize particles here - wait for canvas size
   }
 
   updateConfig(config: Partial<ParticleConfig>) {
     this.config = { ...this.config, ...config };
+
+    // Reinitialize particles if count changed and canvas size is set
+    if (
+      config.count !== undefined &&
+      this.canvasSize.width > 0 &&
+      this.canvasSize.height > 0
+    ) {
+      this.initParticles();
+    }
   }
 
   setMousePosition(x: number, y: number) {
@@ -44,6 +54,19 @@ export class ParticleEngine {
 
   setCanvasSize(width: number, height: number) {
     this.canvasSize = { width, height };
+    // Initialize particles when canvas size is set
+    if (this.particles.size === 0) {
+      this.initParticles();
+    }
+  }
+
+  public initParticles() {
+    this.particles.clear();
+    for (let i = 0; i < this.config.count; i++) {
+      const x = randomBetween(0, this.canvasSize.width);
+      const y = randomBetween(0, this.canvasSize.height);
+      this.addParticle(x, y);
+    }
   }
 
   addParticle(

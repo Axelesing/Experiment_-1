@@ -3,14 +3,11 @@ import { useRef, useEffect, useCallback, useMemo } from 'react';
 import { Play, Pause, RotateCcw, Settings } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
-import { throttle } from '@/shared/lib/utils';
-import { appStore, particleStore } from '@/shared/stores';
-import { Button, Card, Slider } from '@/shared/ui';
+import { throttle } from '../../shared/lib/utils';
+import { appStore, particleStore } from '../../shared/stores';
+import { Button, Card, Slider } from '../../shared/ui';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface ParticleDrawerProps {}
-
-export const ParticleDrawer = observer((_props: ParticleDrawerProps) => {
+export const ParticleDrawer = observer(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(null);
 
@@ -41,12 +38,18 @@ export const ParticleDrawer = observer((_props: ParticleDrawerProps) => {
     if (!canvas) return;
 
     const resizeCanvas = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      particleStore.setCanvasSize(canvas.width, canvas.height);
+      const width = canvas.offsetWidth;
+      const height = canvas.offsetHeight;
+
+      if (width > 0 && height > 0) {
+        canvas.width = width;
+        canvas.height = height;
+        particleStore.setCanvasSize(width, height);
+      }
     };
 
-    resizeCanvas();
+    // Use setTimeout to ensure canvas is rendered
+    setTimeout(resizeCanvas, 0);
     window.addEventListener('resize', resizeCanvas);
 
     return () => {

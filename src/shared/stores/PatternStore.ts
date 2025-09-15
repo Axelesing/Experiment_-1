@@ -1,40 +1,121 @@
 import { makeAutoObservable } from 'mobx';
 
-import type { PatternConfig } from '@/shared/types';
+import {
+  PatternEngine,
+  type PatternConfig,
+} from '../../entities/pattern/lib/pattern-engine';
 
 export class PatternStore {
-  currentPattern: PatternConfig = {
-    type: 'geometric',
-    complexity: 5,
-    colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'],
-    size: 100,
-  };
+  private engine: PatternEngine;
+
+  // Make pattern properties observable
+  patternType: PatternConfig['type'] = 'geometric';
+  patternComplexity = 5;
+  patternColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'];
+  patternDensity = 1;
+  patternAnimation = false;
+  patternSymmetry = false;
 
   isGenerating = false;
   animationSpeed = 1;
+  lastUpdateTime = 0;
+  showSettings = false;
+
+  // Computed property for current pattern
+  get currentPattern(): PatternConfig {
+    return {
+      type: this.patternType,
+      complexity: this.patternComplexity,
+      colors: this.patternColors,
+      density: this.patternDensity,
+      animation: this.patternAnimation,
+      symmetry: this.patternSymmetry,
+    };
+  }
 
   constructor() {
     makeAutoObservable(this);
+
+    this.engine = new PatternEngine(this.currentPattern);
+    // Don't generate pattern here - wait for canvas size
   }
 
   setPatternType = (type: PatternConfig['type']) => {
-    this.currentPattern.type = type;
+    this.patternType = type;
+    this.engine.updateConfig({ type });
+    this.engine.generatePattern(); // Force regeneration
   };
 
   setComplexity = (complexity: number) => {
-    this.currentPattern.complexity = complexity;
+    this.patternComplexity = complexity;
+    this.engine.updateConfig({ complexity });
+    this.engine.generatePattern(); // Force regeneration
   };
 
   setColors = (colors: string[]) => {
-    this.currentPattern.colors = colors;
+    this.patternColors = colors;
+    this.engine.updateConfig({ colors });
+    this.engine.generatePattern(); // Force regeneration
   };
 
-  setSize = (size: number) => {
-    this.currentPattern.size = size;
+  setDensity = (density: number) => {
+    this.patternDensity = density;
+    this.engine.updateConfig({ density });
+    this.engine.generatePattern(); // Force regeneration
+  };
+
+  setAnimation = (animation: boolean) => {
+    this.patternAnimation = animation;
+    this.engine.updateConfig({ animation });
+    this.engine.generatePattern(); // Force regeneration
+  };
+
+  setSymmetry = (symmetry: boolean) => {
+    this.patternSymmetry = symmetry;
+    this.engine.updateConfig({ symmetry });
+    this.engine.generatePattern(); // Force regeneration
   };
 
   setAnimationSpeed = (speed: number) => {
     this.animationSpeed = speed;
+  };
+
+  setCanvasSize = (width: number, height: number) => {
+    this.engine.setCanvasSize(width, height);
+  };
+
+  updateAnimation = (deltaTime: number) => {
+    this.engine.updateAnimation(deltaTime, this.animationSpeed);
+  };
+
+  renderPattern = (ctx: CanvasRenderingContext2D) => {
+    this.engine.render(ctx);
+  };
+
+  getPointCount = () => {
+    return this.engine.getPointCount();
+  };
+
+  updateColor = (index: number, color: string) => {
+    const newColors = [...this.patternColors];
+    newColors[index] = color;
+    this.setColors(newColors);
+  };
+
+  addColor = () => {
+    const newColors = [...this.patternColors, '#ffffff'];
+    this.setColors(newColors);
+  };
+
+  removeColor = (index: number) => {
+    if (this.patternColors.length > 1) {
+      const newColors = this.patternColors.filter((_, i) => i !== index);
+      this.setColors(newColors);
+    }
+  };
+
+  toggleSettings = () => {
+    this.showSettings = !this.showSettings;
   };
 
   generateRandomPattern = () => {
@@ -46,12 +127,14 @@ export class PatternStore {
     ];
     const randomType = types[Math.floor(Math.random() * types.length)];
 
-    this.currentPattern = {
-      type: randomType,
-      complexity: Math.floor(Math.random() * 10) + 1,
-      colors: this.generateRandomColors(),
-      size: Math.floor(Math.random() * 200) + 50,
-    };
+    this.patternType = randomType;
+    this.patternComplexity = Math.floor(Math.random() * 10) + 1;
+    this.patternColors = this.generateRandomColors();
+    this.patternDensity = Math.random() * 2 + 0.5;
+    this.patternAnimation = Math.random() > 0.5;
+    this.patternSymmetry = Math.random() > 0.5;
+
+    this.engine.updateConfig(this.currentPattern);
   };
 
   private generateRandomColors = (): string[] => {

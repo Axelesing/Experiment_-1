@@ -1,6 +1,6 @@
 import { makeAutoObservable } from 'mobx';
 
-import { ParticleEngine } from '@/entities/particle/lib/particle-engine';
+import { ParticleEngine } from '../../entities/particle/lib/particle-engine';
 
 export class ParticleStore {
   private engine: ParticleEngine;
@@ -10,6 +10,7 @@ export class ParticleStore {
   isDrawing = false;
   mousePosition = { x: 0, y: 0 };
   lastUpdateTime = 0;
+  actualParticleCount = 0;
 
   private colors = [
     '#ff6b6b',
@@ -36,11 +37,14 @@ export class ParticleStore {
       friction: 0.99,
       bounce: 0.8,
     });
+
+    this.actualParticleCount = 0; // Will be updated when canvas size is set
   }
 
   setParticleCount = (count: number) => {
     this.particleCount = count;
     this.engine.updateConfig({ count });
+    this.actualParticleCount = this.engine.getParticleCount();
   };
 
   setParticleSize = (size: number) => {
@@ -64,6 +68,9 @@ export class ParticleStore {
 
   setCanvasSize = (width: number, height: number) => {
     this.engine.setCanvasSize(width, height);
+    // Reinitialize particles with new canvas size
+    this.engine.initParticles();
+    this.actualParticleCount = this.engine.getParticleCount();
   };
 
   addParticleBurst = (x: number, y: number, count = 20) => {
@@ -83,6 +90,9 @@ export class ParticleStore {
     if (this.isDrawing && Math.random() < 0.3) {
       this.engine.addParticle(this.mousePosition.x, this.mousePosition.y);
     }
+
+    // Update actual particle count for UI
+    this.actualParticleCount = this.engine.getParticleCount();
   };
 
   renderParticles = (ctx: CanvasRenderingContext2D) => {
@@ -91,6 +101,7 @@ export class ParticleStore {
 
   clearParticles = () => {
     this.engine.clear();
+    this.actualParticleCount = 0;
   };
 
   get particles() {
@@ -98,7 +109,7 @@ export class ParticleStore {
   }
 
   get particlesCount() {
-    return this.engine.getParticleCount();
+    return this.actualParticleCount;
   }
 }
 
