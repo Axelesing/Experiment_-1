@@ -1,0 +1,1 @@
+export { SoundVisualizer } from './SoundVisualizer';

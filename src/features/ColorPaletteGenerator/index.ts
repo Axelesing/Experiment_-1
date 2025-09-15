@@ -1,0 +1,1 @@
+export { ColorPaletteGenerator } from './ColorPaletteGenerator';
