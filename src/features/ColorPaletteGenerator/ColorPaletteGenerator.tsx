@@ -28,9 +28,10 @@ export const ColorPaletteGenerator = observer(() => {
   const handleFavoriteToggle = useCallback((palette: ColorPalette) => {
     if (colorStore.isFavorite(palette.id)) {
       colorStore.removeFromFavorites(palette.id);
-    } else {
-      colorStore.addToFavorites(palette);
+      return;
     }
+
+    colorStore.addToFavorites(palette);
   }, []);
 
   useEffect(() => {

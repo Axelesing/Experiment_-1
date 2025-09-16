@@ -36,6 +36,7 @@ export const Button = React.memo(
           buttonSizes[size],
           className
         )}
+        aria-label={typeof children === 'string' ? children : undefined}
         {...props}
       >
         {children}

@@ -93,61 +93,74 @@ const tabs: Tab[] = [
 ];
 
 export const App = observer(() => {
-  const renderActiveComponent = () => {
-    const LoadingFallback = () => (
-      <div className="card flex items-center justify-center h-96">
-        <div className="text-white/70">Загрузка...</div>
-      </div>
-    );
+  const LoadingFallback = () => (
+    <div className="card flex items-center justify-center h-96">
+      <div className="text-white/70">Загрузка...</div>
+    </div>
+  );
 
-    switch (appStore.activeTab) {
-      case 'particles':
-        return <ParticleDrawer />;
-      case 'patterns':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <PatternGenerator />
-          </Suspense>
-        );
-      case 'ascii':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <AsciiArtGenerator />
-          </Suspense>
-        );
-      case 'colors':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <ColorPaletteGenerator />
-          </Suspense>
-        );
-      case 'fractals':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <FractalViewer />
-          </Suspense>
-        );
-      case 'sound':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <SoundVisualizer />
-          </Suspense>
-        );
-      case 'maze':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <MazeGenerator />
-          </Suspense>
-        );
-      case 'typography':
-        return (
-          <Suspense fallback={<LoadingFallback />}>
-            <TypographyPlayground />
-          </Suspense>
-        );
-      default:
-        return <ParticleDrawer />;
+  const renderActiveComponent = () => {
+    if (appStore.activeTab === 'particles') {
+      return <ParticleDrawer />;
     }
+
+    if (appStore.activeTab === 'patterns') {
+      return (
+        <Suspense fallback={<LoadingFallback />}>
+          <PatternGenerator />
+        </Suspense>
+      );
+    }
+
+    if (appStore.activeTab === 'ascii') {
+      return (
+        <Suspense fallback={<LoadingFallback />}>
+          <AsciiArtGenerator />
+        </Suspense>
+      );
+    }
+
+    if (appStore.activeTab === 'colors') {
+      return (
+        <Suspense fallback={<LoadingFallback />}>
+          <ColorPaletteGenerator />
+        </Suspense>
+      );
+    }
+
+    if (appStore.activeTab === 'fractals') {
+      return (
+        <Suspense fallback={<LoadingFallback />}>
+          <FractalViewer />
+        </Suspense>
+      );
+    }
+
+    if (appStore.activeTab === 'sound') {
+      return (
+        <Suspense fallback={<LoadingFallback />}>
+          <SoundVisualizer />
+        </Suspense>
+      );
+    }
+
+    if (appStore.activeTab === 'maze') {
+      return (
+        <Suspense fallback={<LoadingFallback />}>
+          <MazeGenerator />
+        </Suspense>
+      );
+    }
+
+    if (appStore.activeTab === 'typography') {
+      return (
+        <Suspense fallback={<LoadingFallback />}>
+          <TypographyPlayground />
+        </Suspense>
+      );
+    }
+
+    return <ParticleDrawer />;
   };
 
   return (

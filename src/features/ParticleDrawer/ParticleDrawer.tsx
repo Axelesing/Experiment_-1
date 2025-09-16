@@ -68,14 +68,14 @@ export const ParticleDrawer = observer(() => {
 
   const handleMouseMove = useMemo(
     () =>
-      throttle((e: React.MouseEvent<HTMLCanvasElement>) => {
+      throttle((event: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const rect = canvas.getBoundingClientRect();
         particleStore.setMousePosition(
-          e.clientX - rect.left,
-          e.clientY - rect.top
+          event.clientX - rect.left,
+          event.clientY - rect.top
         );
       }, 16), // ~60fps
     []
@@ -89,22 +89,22 @@ export const ParticleDrawer = observer(() => {
     particleStore.setIsDrawing(false);
   };
 
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
 
     particleStore.addParticleBurst(x, y, 20);
   };
 
-  const clearParticles = () => {
+  const handleClearParticles = () => {
     particleStore.clearParticles();
   };
 
-  const togglePlayPause = () => {
+  const handleTogglePlayPause = () => {
     appStore.togglePlayPause();
   };
 
@@ -121,7 +121,7 @@ export const ParticleDrawer = observer(() => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={togglePlayPause}>
+          <Button onClick={handleTogglePlayPause}>
             {appStore.isPlaying ? (
               <Pause className="w-4 h-4" />
             ) : (
@@ -130,7 +130,7 @@ export const ParticleDrawer = observer(() => {
             {appStore.isPlaying ? 'Пауза' : 'Играть'}
           </Button>
 
-          <Button variant="secondary" onClick={clearParticles}>
+          <Button variant="secondary" onClick={handleClearParticles}>
             <RotateCcw className="w-4 h-4" />
             Очистить
           </Button>
@@ -184,7 +184,7 @@ export const ParticleDrawer = observer(() => {
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onClick={handleClick}
+          onClick={handleCanvasClick}
         />
 
         <div className="absolute top-4 left-4 glass rounded-lg px-3 py-2">

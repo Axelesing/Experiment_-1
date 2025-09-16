@@ -1,10 +1,10 @@
-// SoundVisualizer component
+import { Card } from '../../shared/ui';
 
 export const SoundVisualizer = () => {
   return (
-    <div className="card">
+    <Card>
       <h2 className="text-2xl font-bold text-white mb-4">Визуализатор звука</h2>
       <p className="text-white/70">Скоро здесь будет визуализатор звука!</p>
-    </div>
+    </Card>
   );
 };

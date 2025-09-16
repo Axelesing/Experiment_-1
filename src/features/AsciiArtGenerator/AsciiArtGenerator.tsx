@@ -20,7 +20,9 @@ export const AsciiArtGenerator = observer(() => {
   const handleFileUpload = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-      if (file && file.type.startsWith('image/')) {
+      if (!file) return;
+
+      if (file.type.startsWith('image/')) {
         asciiStore.setUploadedImage(file);
       } else {
         asciiStore.setError('Пожалуйста, выберите изображение');
@@ -32,7 +34,9 @@ export const AsciiArtGenerator = observer(() => {
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const file = event.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
+    if (!file) return;
+
+    if (file.type.startsWith('image/')) {
       asciiStore.setUploadedImage(file);
     } else {
       asciiStore.setError('Пожалуйста, перетащите изображение');

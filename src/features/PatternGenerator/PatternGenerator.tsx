@@ -104,7 +104,7 @@ export const PatternGenerator = observer(() => {
     link.click();
   };
 
-  const generateRandomPattern = () => {
+  const handleGenerateRandomPattern = () => {
     patternStore.generateRandomPattern();
   };
 
@@ -121,7 +121,7 @@ export const PatternGenerator = observer(() => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={generateRandomPattern}>
+          <Button onClick={handleGenerateRandomPattern}>
             <Shuffle className="w-4 h-4" />
             Случайный
           </Button>
