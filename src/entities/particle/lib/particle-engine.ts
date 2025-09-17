@@ -1,4 +1,4 @@
-import { clamp, randomBetween } from '@/shared/lib/utils';
+import { clamp, randomBetween } from '../../../shared/lib/utils';
 
 export interface Particle {
   id: number;

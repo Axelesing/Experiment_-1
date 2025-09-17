@@ -101,6 +101,9 @@ temp/
 *.sln
 *.sw?
 
+# Cursor AI rules
+.cursorrules
+
 # Vite
 dist-ssr
 *.local

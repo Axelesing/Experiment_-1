@@ -88,24 +88,26 @@ export const AsciiArtGenerator = observer(() => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={asciiStore.generateRandomAscii}>
-            <Shuffle className="w-4 h-4" />
+          <Button
+            onClick={asciiStore.generateRandomAscii}
+            leftIcon={<Shuffle className="w-4 h-4" />}
+          >
             Случайный
           </Button>
 
           <Button
             variant="secondary"
             onClick={() => fileInputRef.current?.click()}
+            leftIcon={<Upload className="w-4 h-4" />}
           >
-            <Upload className="w-4 h-4" />
             Загрузить
           </Button>
 
           <Button
             variant="secondary"
             onClick={() => asciiStore.toggleSettings()}
+            leftIcon={<Settings className="w-4 h-4" />}
           >
-            <Settings className="w-4 h-4" />
             Настройки
           </Button>
         </div>
@@ -242,8 +244,8 @@ export const AsciiArtGenerator = observer(() => {
                       e.stopPropagation();
                       asciiStore.convertImageToAscii();
                     }}
+                    leftIcon={<Sparkles className="w-4 h-4" />}
                   >
-                    <Sparkles className="w-4 h-4" />
                     Конвертировать
                   </Button>
                   <Button
@@ -252,8 +254,8 @@ export const AsciiArtGenerator = observer(() => {
                       e.stopPropagation();
                       asciiStore.clearImage();
                     }}
+                    leftIcon={<Trash2 className="w-4 h-4" />}
                   >
-                    <Trash2 className="w-4 h-4" />
                     Удалить
                   </Button>
                 </div>
@@ -307,8 +309,8 @@ export const AsciiArtGenerator = observer(() => {
             <Button
               onClick={asciiStore.generatePatternAscii}
               className="w-full"
+              leftIcon={<Sparkles className="w-4 h-4" />}
             >
-              <Sparkles className="w-4 h-4" />
               Сгенерировать узор
             </Button>
           </div>
@@ -321,16 +323,25 @@ export const AsciiArtGenerator = observer(() => {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Результат</h3>
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={asciiStore.exportAsText}>
-                <FileText className="w-4 h-4" />
+              <Button
+                variant="secondary"
+                onClick={asciiStore.exportAsText}
+                leftIcon={<FileText className="w-4 h-4" />}
+              >
                 TXT
               </Button>
-              <Button variant="secondary" onClick={asciiStore.exportAsHtml}>
-                <Code className="w-4 h-4" />
+              <Button
+                variant="secondary"
+                onClick={asciiStore.exportAsHtml}
+                leftIcon={<Code className="w-4 h-4" />}
+              >
                 HTML
               </Button>
-              <Button variant="secondary" onClick={asciiStore.clearAscii}>
-                <Trash2 className="w-4 h-4" />
+              <Button
+                variant="secondary"
+                onClick={asciiStore.clearAscii}
+                leftIcon={<Trash2 className="w-4 h-4" />}
+              >
                 Очистить
               </Button>
             </div>

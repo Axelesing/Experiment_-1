@@ -121,21 +121,26 @@ export const PatternGenerator = observer(() => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={handleGenerateRandomPattern}>
-            <Shuffle className="w-4 h-4" />
+          <Button
+            onClick={handleGenerateRandomPattern}
+            leftIcon={<Shuffle className="w-4 h-4" />}
+          >
             Случайный
           </Button>
 
-          <Button variant="secondary" onClick={handleDownload}>
-            <Download className="w-4 h-4" />
+          <Button
+            variant="secondary"
+            onClick={handleDownload}
+            leftIcon={<Download className="w-4 h-4" />}
+          >
             Скачать
           </Button>
 
           <Button
             variant="secondary"
             onClick={() => patternStore.toggleSettings()}
+            leftIcon={<Settings className="w-4 h-4" />}
           >
-            <Settings className="w-4 h-4" />
             Настройки
           </Button>
         </div>

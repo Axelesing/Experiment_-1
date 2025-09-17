@@ -121,22 +121,32 @@ export const ParticleDrawer = observer(() => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={handleTogglePlayPause}>
-            {appStore.isPlaying ? (
-              <Pause className="w-4 h-4" />
-            ) : (
-              <Play className="w-4 h-4" />
-            )}
+          <Button
+            onClick={handleTogglePlayPause}
+            leftIcon={
+              appStore.isPlaying ? (
+                <Pause className="w-4 h-4" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )
+            }
+          >
             {appStore.isPlaying ? 'Пауза' : 'Играть'}
           </Button>
 
-          <Button variant="secondary" onClick={handleClearParticles}>
-            <RotateCcw className="w-4 h-4" />
+          <Button
+            variant="secondary"
+            onClick={handleClearParticles}
+            leftIcon={<RotateCcw className="w-4 h-4" />}
+          >
             Очистить
           </Button>
 
-          <Button variant="secondary" onClick={() => appStore.toggleSettings()}>
-            <Settings className="w-4 h-4" />
+          <Button
+            variant="secondary"
+            onClick={() => appStore.toggleSettings()}
+            leftIcon={<Settings className="w-4 h-4" />}
+          >
             Настройки
           </Button>
         </div>

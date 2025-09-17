@@ -65,16 +65,18 @@ export const ColorPaletteGenerator = observer(() => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={colorStore.generateRandomPalette}>
-            <Shuffle className="w-4 h-4" />
+          <Button
+            onClick={colorStore.generateRandomPalette}
+            leftIcon={<Shuffle className="w-4 h-4" />}
+          >
             Случайная
           </Button>
 
           <Button
             variant="secondary"
             onClick={() => colorStore.toggleSettings()}
+            leftIcon={<Settings className="w-4 h-4" />}
           >
-            <Settings className="w-4 h-4" />
             Настройки
           </Button>
         </div>
@@ -197,36 +199,50 @@ export const ColorPaletteGenerator = observer(() => {
                   colorStore.currentPalette &&
                   handleFavoriteToggle(colorStore.currentPalette)
                 }
+                leftIcon={
+                  <Heart
+                    className={`w-4 h-4 ${
+                      colorStore.isFavorite(colorStore.currentPalette!.id)
+                        ? 'fill-red-500 text-red-500'
+                        : ''
+                    }`}
+                  />
+                }
               >
-                <Heart
-                  className={`w-4 h-4 ${
-                    colorStore.isFavorite(colorStore.currentPalette!.id)
-                      ? 'fill-red-500 text-red-500'
-                      : ''
-                  }`}
-                />
                 {colorStore.isFavorite(colorStore.currentPalette!.id)
                   ? 'В избранном'
                   : 'В избранное'}
               </Button>
 
-              <Button variant="secondary" onClick={handlePaletteCopy}>
-                <Copy className="w-4 h-4" />
+              <Button
+                variant="secondary"
+                onClick={handlePaletteCopy}
+                leftIcon={<Copy className="w-4 h-4" />}
+              >
                 Копировать
               </Button>
 
-              <Button variant="secondary" onClick={colorStore.exportAsJson}>
-                <FileText className="w-4 h-4" />
+              <Button
+                variant="secondary"
+                onClick={colorStore.exportAsJson}
+                leftIcon={<FileText className="w-4 h-4" />}
+              >
                 JSON
               </Button>
 
-              <Button variant="secondary" onClick={colorStore.exportAsCss}>
-                <Code className="w-4 h-4" />
+              <Button
+                variant="secondary"
+                onClick={colorStore.exportAsCss}
+                leftIcon={<Code className="w-4 h-4" />}
+              >
                 CSS
               </Button>
 
-              <Button variant="secondary" onClick={colorStore.exportAsScss}>
-                <Scissors className="w-4 h-4" />
+              <Button
+                variant="secondary"
+                onClick={colorStore.exportAsScss}
+                leftIcon={<Scissors className="w-4 h-4" />}
+              >
                 SCSS
               </Button>
             </div>
@@ -252,8 +268,11 @@ export const ColorPaletteGenerator = observer(() => {
           </div>
 
           <div className="flex justify-center">
-            <Button onClick={colorStore.generatePalette} size="lg">
-              <Palette className="w-5 h-5" />
+            <Button
+              onClick={colorStore.generatePalette}
+              size="lg"
+              leftIcon={<Palette className="w-5 h-5" />}
+            >
               Сгенерировать новую палитру
             </Button>
           </div>
@@ -269,8 +288,8 @@ export const ColorPaletteGenerator = observer(() => {
               variant="secondary"
               onClick={colorStore.clearHistory}
               size="sm"
+              leftIcon={<History className="w-4 h-4" />}
             >
-              <History className="w-4 h-4" />
               Очистить
             </Button>
           </div>
