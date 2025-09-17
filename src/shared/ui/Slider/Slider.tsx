@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 
-import { cn } from '@/shared/lib/utils';
+import { cn, clamp } from '@/shared/lib/utils';
 import type { BaseComponentProps } from '@/shared/types';
 
 /**
@@ -58,6 +58,11 @@ export const Slider = React.memo(
     description,
     className,
   }: SliderProps) => {
+    // Validate and clamp value
+    const clampedValue = useMemo(() => {
+      return clamp(value, min, max);
+    }, [value, min, max]);
+
     const sliderId = useMemo(
       () => `slider-${label.toLowerCase().replace(/\s+/g, '-')}`,
       [label]
@@ -66,21 +71,29 @@ export const Slider = React.memo(
     const handleSliderChange = useCallback(
       (event: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = Number(event.target.value);
-        onChange(newValue);
+        const clampedNewValue = clamp(newValue, min, max);
+        onChange(clampedNewValue);
       },
-      [onChange]
+      [onChange, min, max]
     );
 
     const displayValue = useMemo(() => {
       if (formatValue) {
-        return formatValue(value);
+        return formatValue(clampedValue);
       }
-      return showValue ? value.toString() : '';
-    }, [value, formatValue, showValue]);
+      return showValue ? clampedValue.toString() : '';
+    }, [clampedValue, formatValue, showValue]);
 
     const percentage = useMemo(() => {
-      return ((value - min) / (max - min)) * 100;
-    }, [value, min, max]);
+      return ((clampedValue - min) / (max - min)) * 100;
+    }, [clampedValue, min, max]);
+
+    const backgroundStyle = useMemo(
+      () => ({
+        background: `linear-gradient(to right, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.3) ${percentage}%, rgba(255,255,255,0.2) ${percentage}%, rgba(255,255,255,0.2) 100%)`,
+      }),
+      [percentage]
+    );
 
     return (
       <div className={cn('space-y-2', className)}>
@@ -103,7 +116,7 @@ export const Slider = React.memo(
             min={min}
             max={max}
             step={step}
-            value={value}
+            value={clampedValue}
             onChange={handleSliderChange}
             disabled={disabled}
             className={cn(
@@ -115,13 +128,11 @@ export const Slider = React.memo(
               'slider-thumb:shadow-lg slider-thumb:transition-all slider-thumb:duration-200',
               'slider-thumb:hover:scale-110 slider-thumb:focus:scale-110'
             )}
-            style={{
-              background: `linear-gradient(to right, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.3) ${percentage}%, rgba(255,255,255,0.2) ${percentage}%, rgba(255,255,255,0.2) 100%)`,
-            }}
+            style={backgroundStyle}
             aria-label={`${label}: ${displayValue}`}
             aria-valuemin={min}
             aria-valuemax={max}
-            aria-valuenow={value}
+            aria-valuenow={clampedValue}
             aria-valuetext={displayValue}
             aria-disabled={disabled}
           />

@@ -42,42 +42,70 @@ export const Card = React.memo(
     className,
     children,
   }: CardProps) => {
-    const CardWrapper = interactive ? 'button' : 'div';
+    // Memoize header content to prevent unnecessary re-renders
+    const headerContent = React.useMemo(() => {
+      if (header) return header;
 
-    return (
-      <CardWrapper
-        className={cn(
+      if (!title && !description) return null;
+
+      return (
+        <>
+          {title && (
+            <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
+          )}
+          {description && (
+            <p className="text-white/70 text-sm">{description}</p>
+          )}
+        </>
+      );
+    }, [header, title, description]);
+
+    // Memoize wrapper props
+    const wrapperProps = React.useMemo(() => {
+      const baseProps = {
+        className: cn(
           'card',
           interactive &&
             'cursor-pointer hover:scale-[1.02] transition-transform duration-200',
           className
-        )}
-        onClick={interactive ? onClick : undefined}
-        role={interactive ? 'button' : undefined}
-        tabIndex={interactive ? 0 : undefined}
-        aria-label={interactive && title ? title : undefined}
-      >
-        {(title || description || header) && (
-          <div className="card-header">
-            {header || (
-              <>
-                {title && (
-                  <h3 className="text-lg font-semibold text-white mb-1">
-                    {title}
-                  </h3>
-                )}
-                {description && (
-                  <p className="text-white/70 text-sm">{description}</p>
-                )}
-              </>
-            )}
-          </div>
-        )}
+        ),
+      };
 
+      if (interactive) {
+        return {
+          ...baseProps,
+          onClick,
+          role: 'button' as const,
+          tabIndex: 0,
+          'aria-label': title || undefined,
+          onKeyDown: (event: React.KeyboardEvent) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onClick?.();
+            }
+          },
+        };
+      }
+
+      return baseProps;
+    }, [interactive, onClick, title, className]);
+
+    if (interactive) {
+      return (
+        <button {...wrapperProps}>
+          {headerContent && <div className="card-header">{headerContent}</div>}
+          <div className="card-body">{children}</div>
+          {footer && <div className="card-footer">{footer}</div>}
+        </button>
+      );
+    }
+
+    return (
+      <div {...wrapperProps}>
+        {headerContent && <div className="card-header">{headerContent}</div>}
         <div className="card-body">{children}</div>
-
         {footer && <div className="card-footer">{footer}</div>}
-      </CardWrapper>
+      </div>
     );
   }
 );

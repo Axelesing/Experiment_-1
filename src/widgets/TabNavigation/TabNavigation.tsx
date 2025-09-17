@@ -1,3 +1,4 @@
+import React, { useMemo, useCallback } from 'react';
 import {
   Sparkles,
   Shapes,
@@ -26,41 +27,41 @@ const iconMap = {
   Volume2,
   Map,
   AlignLeft,
-};
+} as const;
 
-export const TabNavigation = ({
-  tabs,
-  activeTab,
-  onTabChange,
-}: TabNavigationProps) => {
-  const handleTabClick = (tabId: string) => {
-    onTabChange(tabId);
-  };
+type IconName = keyof typeof iconMap;
 
-  const handleKeyDown = (event: React.KeyboardEvent, tabId: string) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onTabChange(tabId);
-    }
-  };
+export const TabNavigation = React.memo(
+  ({ tabs, activeTab, onTabChange }: TabNavigationProps) => {
+    const handleTabClick = useCallback(
+      (tabId: string) => {
+        onTabChange(tabId);
+      },
+      [onTabChange]
+    );
 
-  return (
-    <nav
-      className="w-full max-w-6xl mx-auto px-4 py-6"
-      role="tablist"
-      aria-label="Навигация по разделам"
-    >
-      <div className="flex flex-wrap gap-2 justify-center">
-        {tabs.map((tab) => {
-          const IconComponent = iconMap[tab.icon as keyof typeof iconMap];
-          const isActive = activeTab === tab.id;
+    const handleKeyDown = useCallback(
+      (event: React.KeyboardEvent, tabId: string) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onTabChange(tabId);
+        }
+      },
+      [onTabChange]
+    );
 
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id)}
-              onKeyDown={(e) => handleKeyDown(e, tab.id)}
-              className={`
+    // Memoize tab rendering to prevent unnecessary re-renders
+    const renderedTabs = useMemo(() => {
+      return tabs.map((tab) => {
+        const IconComponent = iconMap[tab.icon as IconName];
+        const isActive = activeTab === tab.id;
+
+        return (
+          <button
+            key={tab.id}
+            onClick={() => handleTabClick(tab.id)}
+            onKeyDown={(e) => handleKeyDown(e, tab.id)}
+            className={`
                 group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
                 ${
                   isActive
@@ -68,34 +69,47 @@ export const TabNavigation = ({
                     : 'glass-dark text-gray-300 hover:text-white hover:scale-105'
                 }
               `}
-              title={tab.description}
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={`tabpanel-${tab.id}`}
-              tabIndex={isActive ? 0 : -1}
-              aria-label={`${tab.title}: ${tab.description}`}
-            >
-              <IconComponent
-                className={`w-5 h-5 transition-transform duration-300 ${
-                  isActive ? 'animate-pulse' : 'group-hover:rotate-12'
-                }`}
+            title={tab.description}
+            role="tab"
+            aria-selected={isActive}
+            aria-controls={`tabpanel-${tab.id}`}
+            tabIndex={isActive ? 0 : -1}
+            aria-label={`${tab.title}: ${tab.description}`}
+          >
+            <IconComponent
+              className={`w-5 h-5 transition-transform duration-300 ${
+                isActive ? 'animate-pulse' : 'group-hover:rotate-12'
+              }`}
+              aria-hidden="true"
+            />
+            <span className="font-medium text-sm hidden sm:block">
+              {tab.title}
+            </span>
+
+            {/* Active indicator */}
+            {isActive && (
+              <div
+                className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-white rounded-full animate-fade-in"
                 aria-hidden="true"
               />
-              <span className="font-medium text-sm hidden sm:block">
-                {tab.title}
-              </span>
+            )}
+          </button>
+        );
+      });
+    }, [tabs, activeTab, handleTabClick, handleKeyDown]);
 
-              {/* Active indicator */}
-              {isActive && (
-                <div
-                  className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-white rounded-full animate-fade-in"
-                  aria-hidden="true"
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
-};
+    return (
+      <nav
+        className="w-full max-w-6xl mx-auto px-4 py-6"
+        role="tablist"
+        aria-label="Навигация по разделам"
+      >
+        <div className="flex flex-wrap gap-2 justify-center">
+          {renderedTabs}
+        </div>
+      </nav>
+    );
+  }
+);
+
+TabNavigation.displayName = 'TabNavigation';

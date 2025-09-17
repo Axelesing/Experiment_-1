@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import { cn } from '@/shared/lib/utils';
 import type { BaseComponentProps } from '@/shared/types';
@@ -76,6 +76,35 @@ export const Button = React.memo(
   }: ButtonProps) => {
     const isDisabled = disabled || loading;
 
+    // Memoize icon rendering to prevent unnecessary re-renders
+    const leftIconElement = useMemo(() => {
+      if (loading || !leftIcon) return null;
+      return (
+        <span className="flex-shrink-0" aria-hidden="true">
+          {leftIcon}
+        </span>
+      );
+    }, [loading, leftIcon]);
+
+    const rightIconElement = useMemo(() => {
+      if (loading || !rightIcon) return null;
+      return (
+        <span className="flex-shrink-0" aria-hidden="true">
+          {rightIcon}
+        </span>
+      );
+    }, [loading, rightIcon]);
+
+    const loadingSpinner = useMemo(() => {
+      if (!loading) return null;
+      return (
+        <div
+          className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"
+          aria-hidden="true"
+        />
+      );
+    }, [loading]);
+
     return (
       <button
         className={cn(
@@ -91,25 +120,12 @@ export const Button = React.memo(
         aria-disabled={isDisabled}
         {...props}
       >
-        {loading && (
-          <div
-            className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"
-            aria-hidden="true"
-          />
-        )}
-        {!loading && leftIcon && (
-          <span className="flex-shrink-0" aria-hidden="true">
-            {leftIcon}
-          </span>
-        )}
+        {loadingSpinner}
+        {leftIconElement}
         <span className={loading ? 'opacity-0' : 'opacity-100'}>
           {children}
         </span>
-        {!loading && rightIcon && (
-          <span className="flex-shrink-0" aria-hidden="true">
-            {rightIcon}
-          </span>
-        )}
+        {rightIconElement}
       </button>
     );
   }
