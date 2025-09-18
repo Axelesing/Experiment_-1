@@ -1,6 +1,10 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 
-import { ParticleEngine } from '../../entities/particle/lib/particle-engine';
+import {
+  ParticleEngine,
+  PARTICLE_PRESETS,
+  ParticlePreset,
+} from '../../entities/particle/lib/particle-engine';
 
 /**
  * Particle system management store
@@ -30,6 +34,15 @@ export class ParticleStore {
   /** Actual number of particles currently active */
   actualParticleCount = 0;
 
+  /** Current preset name */
+  currentPreset = 'Классический';
+
+  /** Trail length for particles */
+  trailLength = 0;
+
+  /** Whether particles interact with each other */
+  particleInteraction = false;
+
   /** Available particle colors */
   private readonly colors: string[] = [
     '#ff6b6b',
@@ -55,6 +68,8 @@ export class ParticleStore {
       gravity: 0.05,
       friction: 0.99,
       bounce: 0.8,
+      trailLength: this.trailLength,
+      particleInteraction: this.particleInteraction,
     });
 
     this.actualParticleCount = 0; // Will be updated when canvas size is set
@@ -208,6 +223,65 @@ export class ParticleStore {
   }
 
   /**
+   * Sets the trail length for particles
+   * @param length - Trail length (0 to disable)
+   */
+  setTrailLength(length: number): void {
+    runInAction(() => {
+      this.trailLength = length;
+      this.engine.updateConfig({ trailLength: length });
+    });
+  }
+
+  /**
+   * Sets whether particles interact with each other
+   * @param interaction - Whether to enable particle interaction
+   */
+  setParticleInteraction(interaction: boolean): void {
+    runInAction(() => {
+      this.particleInteraction = interaction;
+      this.engine.updateConfig({ particleInteraction: interaction });
+    });
+  }
+
+  /**
+   * Applies a particle preset
+   * @param presetName - Name of the preset to apply
+   */
+  applyPreset(presetName: string): void {
+    const preset = PARTICLE_PRESETS.find((p) => p.name === presetName);
+    if (!preset) return;
+
+    runInAction(() => {
+      this.currentPreset = presetName;
+
+      // Apply preset configuration
+      if (preset.config.colors) {
+        // Update colors in engine
+        this.engine.updateConfig({ colors: preset.config.colors });
+      }
+
+      if (preset.config.trailLength !== undefined) {
+        this.trailLength = preset.config.trailLength;
+      }
+
+      if (preset.config.particleInteraction !== undefined) {
+        this.particleInteraction = preset.config.particleInteraction;
+      }
+
+      // Apply all preset config to engine
+      this.engine.updateConfig(preset.config);
+    });
+  }
+
+  /**
+   * Gets available particle presets
+   */
+  get presets(): ParticlePreset[] {
+    return PARTICLE_PRESETS;
+  }
+
+  /**
    * Resets the store to initial state
    */
   reset(): void {
@@ -219,6 +293,9 @@ export class ParticleStore {
       this.mousePosition = { x: 0, y: 0 };
       this.lastUpdateTime = 0;
       this.actualParticleCount = 0;
+      this.currentPreset = 'Классический';
+      this.trailLength = 0;
+      this.particleInteraction = false;
 
       // Reinitialize engine with default config
       this.engine.updateConfig({
@@ -226,6 +303,8 @@ export class ParticleStore {
         size: this.particleSize,
         speed: this.particleSpeed,
         colors: this.colors,
+        trailLength: this.trailLength,
+        particleInteraction: this.particleInteraction,
       });
     });
   }

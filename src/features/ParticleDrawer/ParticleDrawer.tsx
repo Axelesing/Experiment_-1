@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useMemo } from 'react';
 
-import { Play, Pause, RotateCcw, Settings } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings, Sparkles } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { throttle } from '../../shared/lib/utils';
@@ -157,7 +157,33 @@ export const ParticleDrawer = observer(() => {
           <h3 className="text-lg font-semibold text-white mb-4">
             Настройки частиц
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          {/* Preset Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-white/80 mb-2">
+              Предустановки
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {particleStore.presets.map((preset) => (
+                <Button
+                  key={preset.name}
+                  variant={
+                    particleStore.currentPreset === preset.name
+                      ? 'primary'
+                      : 'secondary'
+                  }
+                  size="sm"
+                  onClick={() => particleStore.applyPreset(preset.name)}
+                  className="text-xs"
+                >
+                  {preset.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Basic Settings */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <Slider
               value={particleStore.particleCount}
               onChange={particleStore.setParticleCount}
@@ -183,6 +209,35 @@ export const ParticleDrawer = observer(() => {
               label="Скорость"
             />
           </div>
+
+          {/* Advanced Settings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Slider
+              value={particleStore.trailLength}
+              onChange={particleStore.setTrailLength}
+              min={0}
+              max={30}
+              label="Длина следа"
+            />
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="particleInteraction"
+                checked={particleStore.particleInteraction}
+                onChange={(e) =>
+                  particleStore.setParticleInteraction(e.target.checked)
+                }
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label
+                htmlFor="particleInteraction"
+                className="text-sm text-white/80"
+              >
+                Взаимодействие частиц
+              </label>
+            </div>
+          </div>
         </div>
       )}
 
@@ -201,6 +256,15 @@ export const ParticleDrawer = observer(() => {
           <p className="text-sm text-white/80">
             Частиц: {particleStore.particlesCount}
           </p>
+        </div>
+
+        <div className="absolute top-4 right-4 glass rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-white/80" />
+            <p className="text-sm text-white/80">
+              {particleStore.currentPreset}
+            </p>
+          </div>
         </div>
       </div>
     </Card>
