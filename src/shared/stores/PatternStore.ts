@@ -7,6 +7,7 @@ import {
 
 export class PatternStore {
   private engine: PatternEngine;
+  private updateTimeout: NodeJS.Timeout | null = null;
 
   // Make pattern properties observable
   patternType: PatternConfig['type'] = 'geometric';
@@ -20,6 +21,7 @@ export class PatternStore {
   animationSpeed = 1;
   lastUpdateTime = 0;
   showSettings = false;
+  error: string | null = null;
 
   // Computed property for current pattern
   get currentPattern(): PatternConfig {
@@ -41,55 +43,101 @@ export class PatternStore {
   }
 
   setPatternType = (type: PatternConfig['type']) => {
-    this.patternType = type;
-    this.engine.updateConfig({ type });
-    this.engine.generatePattern(); // Force regeneration
+    try {
+      this.error = null;
+      this.patternType = type;
+      this.debouncedUpdateConfig({ type });
+    } catch (error) {
+      this.error = `Failed to set pattern type: ${error}`;
+      console.error('Error setting pattern type:', error);
+    }
   };
 
   setComplexity = (complexity: number) => {
-    this.patternComplexity = complexity;
-    this.engine.updateConfig({ complexity });
-    this.engine.generatePattern(); // Force regeneration
+    try {
+      this.error = null;
+      this.patternComplexity = Math.max(1, Math.min(10, complexity));
+      this.debouncedUpdateConfig({ complexity: this.patternComplexity });
+    } catch (error) {
+      this.error = `Failed to set complexity: ${error}`;
+      console.error('Error setting complexity:', error);
+    }
   };
 
   setColors = (colors: string[]) => {
-    this.patternColors = colors;
-    this.engine.updateConfig({ colors });
-    this.engine.generatePattern(); // Force regeneration
+    try {
+      this.error = null;
+      this.patternColors = colors;
+      this.debouncedUpdateConfig({ colors });
+    } catch (error) {
+      this.error = `Failed to set colors: ${error}`;
+      console.error('Error setting colors:', error);
+    }
   };
 
   setDensity = (density: number) => {
-    this.patternDensity = density;
-    this.engine.updateConfig({ density });
-    this.engine.generatePattern(); // Force regeneration
+    try {
+      this.error = null;
+      this.patternDensity = Math.max(0.1, Math.min(5, density));
+      this.debouncedUpdateConfig({ density: this.patternDensity });
+    } catch (error) {
+      this.error = `Failed to set density: ${error}`;
+      console.error('Error setting density:', error);
+    }
   };
 
   setAnimation = (animation: boolean) => {
-    this.patternAnimation = animation;
-    this.engine.updateConfig({ animation });
-    this.engine.generatePattern(); // Force regeneration
+    try {
+      this.error = null;
+      this.patternAnimation = animation;
+      this.debouncedUpdateConfig({ animation });
+    } catch (error) {
+      this.error = `Failed to set animation: ${error}`;
+      console.error('Error setting animation:', error);
+    }
   };
 
   setSymmetry = (symmetry: boolean) => {
-    this.patternSymmetry = symmetry;
-    this.engine.updateConfig({ symmetry });
-    this.engine.generatePattern(); // Force regeneration
+    try {
+      this.error = null;
+      this.patternSymmetry = symmetry;
+      this.debouncedUpdateConfig({ symmetry });
+    } catch (error) {
+      this.error = `Failed to set symmetry: ${error}`;
+      console.error('Error setting symmetry:', error);
+    }
   };
 
   setAnimationSpeed = (speed: number) => {
-    this.animationSpeed = speed;
+    this.animationSpeed = Math.max(0.1, Math.min(5, speed));
   };
 
   setCanvasSize = (width: number, height: number) => {
-    this.engine.setCanvasSize(width, height);
+    try {
+      this.error = null;
+      this.engine.setCanvasSize(width, height);
+    } catch (error) {
+      this.error = `Failed to set canvas size: ${error}`;
+      console.error('Error setting canvas size:', error);
+    }
   };
 
   updateAnimation = (deltaTime: number) => {
-    this.engine.updateAnimation(deltaTime, this.animationSpeed);
+    try {
+      this.engine.updateAnimation(deltaTime, this.animationSpeed);
+    } catch (error) {
+      this.error = `Animation error: ${error}`;
+      console.error('Error updating animation:', error);
+    }
   };
 
   renderPattern = (ctx: CanvasRenderingContext2D) => {
-    this.engine.render(ctx);
+    try {
+      this.engine.render(ctx);
+    } catch (error) {
+      this.error = `Render error: ${error}`;
+      console.error('Error rendering pattern:', error);
+    }
   };
 
   getPointCount = () => {
@@ -97,21 +145,44 @@ export class PatternStore {
   };
 
   updateColor = (index: number, color: string) => {
+    if (index < 0 || index >= this.patternColors.length) {
+      this.error = 'Invalid color index';
+      return;
+    }
+
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+      this.error = 'Invalid color format';
+      return;
+    }
+
     const newColors = [...this.patternColors];
     newColors[index] = color;
     this.setColors(newColors);
   };
 
   addColor = () => {
+    if (this.patternColors.length >= 10) {
+      this.error = 'Maximum 10 colors allowed';
+      return;
+    }
+
     const newColors = [...this.patternColors, '#ffffff'];
     this.setColors(newColors);
   };
 
   removeColor = (index: number) => {
-    if (this.patternColors.length > 1) {
-      const newColors = this.patternColors.filter((_, i) => i !== index);
-      this.setColors(newColors);
+    if (index < 0 || index >= this.patternColors.length) {
+      this.error = 'Invalid color index';
+      return;
     }
+
+    if (this.patternColors.length <= 1) {
+      this.error = 'At least one color is required';
+      return;
+    }
+
+    const newColors = this.patternColors.filter((_, i) => i !== index);
+    this.setColors(newColors);
   };
 
   toggleSettings = () => {
@@ -147,6 +218,62 @@ export class PatternStore {
     ];
 
     return colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+  };
+
+  /**
+   * Debounced config update to prevent excessive regeneration
+   */
+  private debouncedUpdateConfig = (config: Partial<PatternConfig>) => {
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+    }
+
+    this.updateTimeout = setTimeout(() => {
+      try {
+        this.engine.updateConfig(config);
+      } catch (error) {
+        this.error = `Failed to update config: ${error}`;
+        console.error('Error updating config:', error);
+      }
+    }, 100); // 100ms debounce
+  };
+
+  /**
+   * Clear error state
+   */
+  clearError = () => {
+    this.error = null;
+  };
+
+  /**
+   * Get current engine config
+   */
+  getEngineConfig = () => {
+    return this.engine.getConfig();
+  };
+
+  /**
+   * Check if pattern is being generated
+   */
+  isGeneratingPattern = () => {
+    return this.engine.isGeneratingPattern();
+  };
+
+  /**
+   * Get canvas size
+   */
+  getCanvasSize = () => {
+    return this.engine.getCanvasSize();
+  };
+
+  /**
+   * Dispose resources
+   */
+  dispose = () => {
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+    }
   };
 }
 

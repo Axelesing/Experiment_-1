@@ -1,6 +1,12 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { Settings, Download, Shuffle } from 'lucide-react';
+import {
+  Settings,
+  Download,
+  Shuffle,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
 
 import { patternStore } from '../../shared/stores';
 import { Button, Card, Slider } from '../../shared/ui';
@@ -10,6 +16,7 @@ export const PatternGenerator = observer(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(null);
   const lastTimeRef = useRef<number>(0);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const updatePattern = useCallback((deltaTime: number = 1) => {
     const canvas = canvasRef.current;
@@ -94,19 +101,50 @@ export const PatternGenerator = observer(() => {
     updatePattern,
   ]);
 
-  const handleDownload = () => {
+  const handleDownload = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const link = document.createElement('a');
-    link.download = `pattern-${Date.now()}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
-  };
+    try {
+      setIsDownloading(true);
 
-  const handleGenerateRandomPattern = () => {
-    patternStore.generateRandomPattern();
-  };
+      // Create a high-resolution version for download
+      const scale = 2; // 2x resolution
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+
+      if (!tempCtx) throw new Error('Failed to create temporary canvas');
+
+      tempCanvas.width = canvas.width * scale;
+      tempCanvas.height = canvas.height * scale;
+
+      // Scale up the context
+      tempCtx.scale(scale, scale);
+
+      // Render the pattern at higher resolution
+      patternStore.renderPattern(tempCtx);
+
+      // Download the high-res version
+      const link = document.createElement('a');
+      link.download = `pattern-${patternStore.patternType}-${Date.now()}.png`;
+      link.href = tempCanvas.toDataURL('image/png', 1.0);
+      link.click();
+    } catch (error) {
+      console.error('Download failed:', error);
+      patternStore.error = `Download failed: ${error}`;
+    } finally {
+      setIsDownloading(false);
+    }
+  }, []);
+
+  const handleGenerateRandomPattern = useCallback(() => {
+    try {
+      patternStore.clearError();
+      patternStore.generateRandomPattern();
+    } catch (error) {
+      console.error('Failed to generate random pattern:', error);
+    }
+  }, []);
 
   return (
     <Card>
@@ -124,6 +162,7 @@ export const PatternGenerator = observer(() => {
           <Button
             onClick={handleGenerateRandomPattern}
             leftIcon={<Shuffle className="w-4 h-4" />}
+            disabled={patternStore.isGeneratingPattern()}
           >
             Случайный
           </Button>
@@ -131,9 +170,16 @@ export const PatternGenerator = observer(() => {
           <Button
             variant="secondary"
             onClick={handleDownload}
-            leftIcon={<Download className="w-4 h-4" />}
+            leftIcon={
+              isDownloading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )
+            }
+            disabled={isDownloading || patternStore.getPointCount() === 0}
           >
-            Скачать
+            {isDownloading ? 'Скачивание...' : 'Скачать'}
           </Button>
 
           <Button
@@ -145,6 +191,25 @@ export const PatternGenerator = observer(() => {
           </Button>
         </div>
       </div>
+
+      {/* Error Display */}
+      {patternStore.error && (
+        <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-red-400 font-medium">Ошибка</p>
+            <p className="text-red-300 text-sm">{patternStore.error}</p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={patternStore.clearError}
+            className="text-red-400 hover:text-red-300"
+          >
+            ×
+          </Button>
+        </div>
+      )}
 
       {patternStore.showSettings && (
         <div className="glass rounded-lg p-4 mb-6">
@@ -274,13 +339,31 @@ export const PatternGenerator = observer(() => {
         />
 
         <div className="absolute top-4 left-4 glass rounded-lg px-3 py-2">
-          <p className="text-sm text-white/80">
-            Точек: {patternStore.getPointCount()}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-white/80">
+              Точек: {patternStore.getPointCount()}
+            </p>
+            {patternStore.isGeneratingPattern() && (
+              <Loader2 className="w-3 h-3 text-blue-400 animate-spin" />
+            )}
+          </div>
+
+          <div className="text-xs text-white/60 mt-1">
+            Тип: {patternStore.patternType} | Сложность:{' '}
+            {patternStore.patternComplexity}
+          </div>
+
           {patternStore.patternAnimation && (
             <div className="flex items-center gap-2 mt-1">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <p className="text-xs text-green-400">Анимация активна</p>
+            </div>
+          )}
+
+          {patternStore.patternSymmetry && (
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              <p className="text-xs text-purple-400">Симметрия включена</p>
             </div>
           )}
         </div>

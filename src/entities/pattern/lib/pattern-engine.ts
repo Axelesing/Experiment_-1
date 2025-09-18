@@ -26,14 +26,19 @@ export class PatternEngine {
   private points: PatternPoint[] = [];
   private animationTime = 0;
   private canvasSize = { width: 0, height: 0 };
+  private isGenerating = false;
+  private lastGenerationTime = 0;
+  private readonly MIN_GENERATION_INTERVAL = 16; // 60fps
 
   constructor(config: PatternConfig) {
-    this.config = config;
+    this.config = this.validateConfig(config);
     // Don't generate pattern here - wait for canvas size
   }
 
   updateConfig(config: Partial<PatternConfig>) {
-    this.config = { ...this.config, ...config };
+    const validatedConfig = this.validateConfig({ ...this.config, ...config });
+    this.config = validatedConfig;
+
     // Only generate pattern if canvas size is set
     if (this.canvasSize.width > 0 && this.canvasSize.height > 0) {
       this.generatePattern();
@@ -41,6 +46,10 @@ export class PatternEngine {
   }
 
   setCanvasSize(width: number, height: number) {
+    if (width <= 0 || height <= 0) {
+      throw new Error('Canvas size must be positive');
+    }
+
     this.canvasSize = { width, height };
     // Generate pattern when canvas size is set
     if (this.points.length === 0) {
@@ -49,27 +58,48 @@ export class PatternEngine {
   }
 
   public generatePattern() {
-    this.points = [];
-    this.animationTime = 0;
-
-    switch (this.config.type) {
-      case 'geometric':
-        this.generateGeometricPattern();
-        break;
-      case 'organic':
-        this.generateOrganicPattern();
-        break;
-      case 'fractal':
-        this.generateFractalPattern();
-        break;
-      case 'spiral':
-        this.generateSpiralPattern();
-        break;
+    if (this.isGenerating) {
+      return; // Prevent concurrent generation
     }
 
-    // Apply symmetry if enabled
-    if (this.config.symmetry) {
-      this.applySymmetry();
+    const now = performance.now();
+    if (now - this.lastGenerationTime < this.MIN_GENERATION_INTERVAL) {
+      return; // Throttle generation
+    }
+
+    this.isGenerating = true;
+    this.lastGenerationTime = now;
+
+    try {
+      this.points = [];
+      this.animationTime = 0;
+
+      switch (this.config.type) {
+        case 'geometric':
+          this.generateGeometricPattern();
+          break;
+        case 'organic':
+          this.generateOrganicPattern();
+          break;
+        case 'fractal':
+          this.generateFractalPattern();
+          break;
+        case 'spiral':
+          this.generateSpiralPattern();
+          break;
+        default:
+          throw new Error(`Unknown pattern type: ${this.config.type}`);
+      }
+
+      // Apply symmetry if enabled
+      if (this.config.symmetry) {
+        this.applySymmetry();
+      }
+    } catch (error) {
+      console.error('Error generating pattern:', error);
+      this.points = []; // Fallback to empty pattern
+    } finally {
+      this.isGenerating = false;
     }
   }
 
@@ -369,5 +399,53 @@ export class PatternEngine {
 
       ctx.restore();
     });
+  }
+
+  /**
+   * Validates pattern configuration and returns sanitized config
+   */
+  private validateConfig(config: PatternConfig): PatternConfig {
+    const validTypes: PatternConfig['type'][] = [
+      'geometric',
+      'organic',
+      'fractal',
+      'spiral',
+    ];
+
+    return {
+      type: validTypes.includes(config.type) ? config.type : 'geometric',
+      complexity: Math.max(1, Math.min(10, Math.round(config.complexity))),
+      colors:
+        Array.isArray(config.colors) && config.colors.length > 0
+          ? config.colors.filter(
+              (color) =>
+                typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color)
+            )
+          : ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'],
+      density: Math.max(0.1, Math.min(5, config.density)),
+      animation: Boolean(config.animation),
+      symmetry: Boolean(config.symmetry),
+    };
+  }
+
+  /**
+   * Gets current configuration
+   */
+  getConfig(): PatternConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * Checks if pattern is currently being generated
+   */
+  isGeneratingPattern(): boolean {
+    return this.isGenerating;
+  }
+
+  /**
+   * Gets canvas size
+   */
+  getCanvasSize(): { width: number; height: number } {
+    return { ...this.canvasSize };
   }
 }
