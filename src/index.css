@@ -46,3 +46,16 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-white/30 rounded hover:bg-white/50;
 }
+
+/* ASCII Art animations */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

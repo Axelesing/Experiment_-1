@@ -30,15 +30,25 @@ export class AsciiStore {
   /** Preview URL for uploaded image */
   previewUrl: string | null = null;
 
+  /** Observable configuration */
+  config: AsciiConfig = {
+    width: 80,
+    height: 40,
+    characters: '@%#*+=-:. ',
+    invert: false,
+    contrast: 1.0,
+    brightness: 0.0,
+    fontFamily: 'Courier New',
+    fontSize: 12,
+    quality: 'medium',
+    colorize: false,
+    animate: false,
+  };
+
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
-  }
-
-  /**
-   * Gets the current ASCII configuration
-   */
-  get config(): AsciiConfig {
-    return this.engine.getConfig();
+    // Синхронизируем конфигурацию с engine
+    this.engine.setConfig(this.config);
   }
 
   /**
@@ -61,8 +71,44 @@ export class AsciiStore {
    */
   setConfig(config: Partial<AsciiConfig>): void {
     runInAction(() => {
-      this.engine.setConfig(config);
+      this.config = { ...this.config, ...config };
+      this.engine.setConfig(this.config);
+
+      // Если есть текущий ASCII арт и изменились параметры генерации,
+      // перегенерируем его
+      if (this.currentAscii && this.shouldRegenerate(config)) {
+        this.regenerateCurrentAscii();
+      }
     });
+  }
+
+  /**
+   * Checks if ASCII art should be regenerated based on config changes
+   */
+  private shouldRegenerate(config: Partial<AsciiConfig>): boolean {
+    const regenerationKeys: (keyof AsciiConfig)[] = [
+      'width',
+      'height',
+      'characters',
+      'invert',
+      'contrast',
+      'brightness',
+      'quality',
+    ];
+    return regenerationKeys.some((key) => key in config);
+  }
+
+  /**
+   * Regenerates current ASCII art with new settings
+   */
+  private regenerateCurrentAscii(): void {
+    if (this.uploadedImage) {
+      // Если есть загруженное изображение, конвертируем его заново
+      this.convertImageToAscii();
+    } else {
+      // Если нет изображения, генерируем случайный ASCII
+      this.generateRandomAscii();
+    }
   }
 
   /**
@@ -227,6 +273,40 @@ export class AsciiStore {
     } catch (error) {
       console.error('Error exporting as HTML:', error);
       this.setError('Ошибка экспорта в HTML файл');
+    }
+  }
+
+  /**
+   * Exports current ASCII art as JSON file
+   */
+  exportAsJson(): void {
+    if (!this.currentAscii) {
+      this.setError('Нет ASCII арта для экспорта');
+      return;
+    }
+
+    try {
+      this.engine.exportAsJson(this.currentAscii);
+    } catch (error) {
+      console.error('Error exporting as JSON:', error);
+      this.setError('Ошибка экспорта в JSON файл');
+    }
+  }
+
+  /**
+   * Exports current ASCII art as SVG file
+   */
+  exportAsSvg(): void {
+    if (!this.currentAscii) {
+      this.setError('Нет ASCII арта для экспорта');
+      return;
+    }
+
+    try {
+      this.engine.exportAsSvg(this.currentAscii);
+    } catch (error) {
+      console.error('Error exporting as SVG:', error);
+      this.setError('Ошибка экспорта в SVG файл');
     }
   }
 
