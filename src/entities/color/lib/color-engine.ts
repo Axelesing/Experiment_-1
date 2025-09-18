@@ -461,16 +461,37 @@ ${palette.colors.map((color, index) => `  ${index + 1}: ${color}`).join(',\n')}
     palette: ColorPalette,
     filename: string = 'color-palette.ase'
   ): void {
-    // Simplified ASE export (Adobe Swatch Exchange format)
-    // This is a basic implementation - full ASE format is more complex
-    const data = {
-      name: palette.name,
-      colors: palette.colors,
-      format: 'ASE',
-      version: '1.0',
+    // Adobe Swatch Exchange (ASE) format
+    // This is a simplified implementation
+    const aseData = this.generateAseData(palette);
+    const blob = new Blob([aseData], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  exportAsSketch(
+    palette: ColorPalette,
+    filename: string = 'color-palette.sketchpalette'
+  ): void {
+    // Sketch palette format
+    const sketchData = {
+      compatibleVersion: '2.0',
+      pluginVersion: '2.0',
+      colors: palette.colors.map((color) => ({
+        red: parseInt(color.slice(1, 3), 16) / 255,
+        green: parseInt(color.slice(3, 5), 16) / 255,
+        blue: parseInt(color.slice(5, 7), 16) / 255,
+        alpha: 1,
+      })),
+      gradients: [],
+      images: [],
     };
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
+    const blob = new Blob([JSON.stringify(sketchData, null, 2)], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
@@ -479,5 +500,143 @@ ${palette.colors.map((color, index) => `  ${index + 1}: ${color}`).join(',\n')}
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  exportAsFigma(
+    palette: ColorPalette,
+    filename: string = 'color-palette.figma.json'
+  ): void {
+    // Figma plugin format
+    const figmaData = {
+      name: palette.name,
+      description: `Generated color palette: ${palette.name}`,
+      colors: palette.colors.map((color, index) => ({
+        name: `Color ${index + 1}`,
+        value: color,
+        type: 'SOLID',
+      })),
+      version: '1.0.0',
+      created: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(figmaData, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  exportAsTailwind(
+    palette: ColorPalette,
+    filename: string = 'color-palette.js'
+  ): void {
+    // Tailwind CSS config format
+    const tailwindConfig = `// ${palette.name} - Tailwind CSS Color Palette
+      module.exports = {
+        theme: {
+          extend: {
+            colors: {
+              palette: {
+                ${palette.colors.map((color, index) => `${index + 1}: '${color}'`).join(',\n')}
+              }
+            }
+          }
+        }
+      }`;
+
+    const blob = new Blob([tailwindConfig], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  exportAsLess(
+    palette: ColorPalette,
+    filename: string = 'color-palette.less'
+  ): void {
+    // LESS variables format
+    const lessContent = `// ${palette.name} - Generated Color Palette
+@palette-1: ${palette.colors[0]};
+@palette-2: ${palette.colors[1]};
+@palette-3: ${palette.colors[2]};
+@palette-4: ${palette.colors[3]};
+@palette-5: ${palette.colors[4]};
+
+// Usage examples
+.primary { color: @palette-1; }
+.secondary { color: @palette-2; }
+.accent { color: @palette-3; }`;
+
+    const blob = new Blob([lessContent], { type: 'text/less' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private generateAseData(palette: ColorPalette): ArrayBuffer {
+    // Simplified ASE format implementation
+    const buffer = new ArrayBuffer(1024);
+    const view = new DataView(buffer);
+    let offset = 0;
+
+    // ASE file header
+    view.setUint32(offset, 0x41534546, false); // "ASEF"
+    offset += 4;
+    view.setUint32(offset, 0x00010000, false); // Version
+    offset += 4;
+    view.setUint32(offset, palette.colors.length, false); // Number of blocks
+    offset += 4;
+
+    // Color blocks
+    palette.colors.forEach((color) => {
+      // Block type (0x0001 = color)
+      view.setUint16(offset, 0x0001, false);
+      offset += 2;
+
+      // Block length
+      const nameLength = 4; // "Color"
+      const colorDataLength = 10; // RGB + name
+      view.setUint32(offset, nameLength + colorDataLength, false);
+      offset += 4;
+
+      // Color name length
+      view.setUint16(offset, nameLength, false);
+      offset += 2;
+
+      // Color name
+      const nameBytes = new TextEncoder().encode('Color');
+      for (let i = 0; i < nameLength; i++) {
+        view.setUint16(offset, nameBytes[i], false);
+        offset += 2;
+      }
+
+      // Color model (RGB = 0x52474220)
+      view.setUint32(offset, 0x52474220, false);
+      offset += 4;
+
+      // RGB values
+      const r = parseInt(color.slice(1, 3), 16) / 255;
+      const g = parseInt(color.slice(3, 5), 16) / 255;
+      const b = parseInt(color.slice(5, 7), 16) / 255;
+
+      view.setFloat32(offset, r, false);
+      offset += 4;
+      view.setFloat32(offset, g, false);
+      offset += 4;
+      view.setFloat32(offset, b, false);
+      offset += 4;
+    });
+
+    return buffer.slice(0, offset);
   }
 }

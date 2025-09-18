@@ -249,6 +249,62 @@ export class ColorStore {
     }
   };
 
+  exportAsSketch = () => {
+    if (!this.currentPalette) {
+      this.setError('Нет палитры для экспорта');
+      return;
+    }
+
+    try {
+      this.engine.exportAsSketch(this.currentPalette);
+    } catch (error) {
+      console.log(error);
+      this.setError('Ошибка экспорта в Sketch');
+    }
+  };
+
+  exportAsFigma = () => {
+    if (!this.currentPalette) {
+      this.setError('Нет палитры для экспорта');
+      return;
+    }
+
+    try {
+      this.engine.exportAsFigma(this.currentPalette);
+    } catch (error) {
+      console.log(error);
+      this.setError('Ошибка экспорта в Figma');
+    }
+  };
+
+  exportAsTailwind = () => {
+    if (!this.currentPalette) {
+      this.setError('Нет палитры для экспорта');
+      return;
+    }
+
+    try {
+      this.engine.exportAsTailwind(this.currentPalette);
+    } catch (error) {
+      console.log(error);
+      this.setError('Ошибка экспорта в Tailwind');
+    }
+  };
+
+  exportAsLess = () => {
+    if (!this.currentPalette) {
+      this.setError('Нет палитры для экспорта');
+      return;
+    }
+
+    try {
+      this.engine.exportAsLess(this.currentPalette);
+    } catch (error) {
+      console.log(error);
+      this.setError('Ошибка экспорта в LESS');
+    }
+  };
+
   copyToClipboard = async (color: string) => {
     try {
       await navigator.clipboard.writeText(color);
