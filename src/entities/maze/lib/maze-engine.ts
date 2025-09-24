@@ -69,6 +69,60 @@ export interface Maze {
 }
 
 /**
+ * Step in maze generation process
+ * @interface GenerationStep
+ */
+export interface GenerationStep {
+  /** Type of step */
+  type: 'visit' | 'carve' | 'complete';
+  /** Cell position */
+  position: CellPosition;
+  /** Direction of wall removal (for carve steps) */
+  direction?: Direction;
+  /** Current maze state */
+  maze: Maze;
+}
+
+/**
+ * Path finding algorithm type
+ */
+export type PathfindingAlgorithm = 'bfs' | 'dfs' | 'astar';
+
+/**
+ * Path finding result
+ * @interface PathfindingResult
+ */
+export interface PathfindingResult {
+  /** Found path from start to end */
+  path: CellPosition[];
+  /** All visited cells during search */
+  visited: CellPosition[];
+  /** Whether a path was found */
+  found: boolean;
+  /** Algorithm used */
+  algorithm: PathfindingAlgorithm;
+  /** Number of steps taken */
+  steps: number;
+}
+
+/**
+ * Step in path finding process
+ * @interface PathfindingStep
+ */
+export interface PathfindingStep {
+  /** Type of step */
+  type: 'visit' | 'path' | 'complete';
+  /** Cell position */
+  position: CellPosition;
+  /** Current path */
+  path: CellPosition[];
+  /** All visited cells */
+  visited: CellPosition[];
+  /** Whether path was found */
+  found: boolean;
+}
+
+/**
  * Maze generation engine supporting multiple algorithms
  *
  * This class provides methods to generate mazes using different algorithms:
@@ -249,6 +303,55 @@ export class MazeEngine {
   }
 
   /**
+   * Generate maze step by step for animation
+   *
+   * @returns {Generator<GenerationStep>} Generator yielding generation steps
+   */
+  *generateStepByStep(): Generator<GenerationStep> {
+    const cells = this.initializeCells();
+    const start = { x: 1, y: 1 };
+    const end = { x: this.config.width - 2, y: this.config.height - 2 };
+
+    const maze: Maze = {
+      cells,
+      width: this.config.width,
+      height: this.config.height,
+      start,
+      end,
+    };
+
+    switch (this.config.algorithm) {
+      case 'recursive':
+        yield* this.generateRecursiveStepByStep(maze);
+        break;
+      case 'prim':
+        yield* this.generatePrimStepByStep(maze);
+        break;
+      case 'kruskal':
+        yield* this.generateKruskalStepByStep(maze);
+        break;
+      case 'wilson':
+        yield* this.generateWilsonStepByStep(maze);
+        break;
+      default:
+        yield* this.generateRecursiveStepByStep(maze);
+    }
+
+    // Set start and end points
+    cells[start.y][start.x].type = 'start';
+    cells[end.y][end.x].type = 'end';
+
+    yield {
+      type: 'complete',
+      position: end,
+      maze: {
+        ...maze,
+        cells: [...cells],
+      },
+    };
+  }
+
+  /**
    * Initialize maze cells with walls
    *
    * Creates a 2D array of cells, all initially set as walls with all walls present
@@ -366,15 +469,96 @@ export class MazeEngine {
 
   /**
    * Kruskal's algorithm implementation
+   *
+   * Creates mazes with multiple paths by:
+   * 1. Treating each cell as a separate tree
+   * 2. Creating a list of all possible walls
+   * 3. Randomly selecting walls and removing them if they connect different trees
+   * 4. Continuing until all cells are in the same tree
    */
   private carvePathKruskal(cells: MazeCell[][]): void {
-    // Use recursive backtracking approach for Kruskal
-    // This ensures connectivity while maintaining the algorithm name
-    this.carvePath(cells, 1, 1);
+    // Create list of all possible walls (edges between cells)
+    const walls: Array<{ x: number; y: number; direction: Direction }> = [];
+
+    // Add all possible walls between adjacent cells
+    for (let y = 0; y < this.config.height; y++) {
+      for (let x = 0; x < this.config.width; x++) {
+        // Only consider walls between path cells (odd coordinates)
+        if (x % 2 === 1 && y % 2 === 1) {
+          const directions: Direction[] = ['north', 'south', 'east', 'west'];
+          for (const direction of directions) {
+            const next = this.getNextPosition(x, y, direction);
+            // Only add walls to adjacent path cells
+            if (
+              this.isValidCell(next.x, next.y) &&
+              next.x % 2 === 1 &&
+              next.y % 2 === 1
+            ) {
+              walls.push({ x, y, direction });
+            }
+          }
+        }
+      }
+    }
+
+    // Shuffle walls for random selection
+    this.shuffleArray(walls);
+
+    // Union-Find data structure for tracking connected components
+    const cellToSet: number[] = [];
+    const sets: number[][] = [];
+    let setCount = 0;
+
+    // Initialize each path cell as its own set
+    for (let y = 1; y < this.config.height - 1; y += 2) {
+      for (let x = 1; x < this.config.width - 1; x += 2) {
+        const cellIndex = y * this.config.width + x;
+        cellToSet[cellIndex] = setCount;
+        sets[setCount] = [cellIndex];
+        setCount++;
+      }
+    }
+
+    // Process walls in random order
+    for (const wall of walls) {
+      const currentIndex = wall.y * this.config.width + wall.x;
+      const next = this.getNextPosition(wall.x, wall.y, wall.direction);
+      const nextIndex = next.y * this.config.width + next.x;
+
+      const currentSet = this.findSet(sets, cellToSet[currentIndex]);
+      const nextSet = this.findSet(sets, cellToSet[nextIndex]);
+
+      // If cells are in different sets, connect them
+      if (currentSet !== nextSet) {
+        // Mark both cells as path
+        cells[wall.y][wall.x].type = 'path';
+        cells[wall.y][wall.x].visited = true;
+        cells[next.y][next.x].type = 'path';
+        cells[next.y][next.x].visited = true;
+
+        // Remove wall between them
+        this.removeWall(cells, wall.x, wall.y, wall.direction);
+
+        // Union the sets
+        this.unionSets(sets, currentSet, nextSet, cellToSet);
+
+        // If all cells are connected, we can stop early
+        if (sets[currentSet].length === setCount) {
+          break;
+        }
+      }
+    }
   }
 
   /**
    * Wilson's algorithm implementation
+   *
+   * Creates mazes with natural, organic appearance by:
+   * 1. Starting with a single visited cell
+   * 2. Randomly walking from an unvisited cell until reaching a visited cell
+   * 3. Carving the path from the walk
+   * 4. Marking all cells in the path as visited
+   * 5. Repeating until all cells are visited
    */
   private carvePathWilson(
     cells: MazeCell[][],
@@ -400,10 +584,13 @@ export class MazeEngine {
       const randomIndex = Math.floor(Math.random() * unvisited.length);
       const start = unvisited[randomIndex];
 
-      const path = this.randomWalk(cells, start);
+      // Perform random walk until we hit a visited cell
+      const path = this.randomWalkWilson(cells, start);
+
+      // Carve the path and mark cells as visited
       this.carvePathFromWalk(cells, path);
 
-      // Remove visited cells from unvisited
+      // Remove all cells in the path from unvisited
       for (let i = unvisited.length - 1; i >= 0; i--) {
         const cell = unvisited[i];
         if (cells[cell.y][cell.x].type === 'path') {
@@ -525,7 +712,40 @@ export class MazeEngine {
   }
 
   /**
-   * Random walk from a cell until reaching a visited cell
+   * Random walk from a cell until reaching a visited cell (for Wilson's algorithm)
+   */
+  private randomWalkWilson(
+    cells: MazeCell[][],
+    start: CellPosition
+  ): CellPosition[] {
+    const path: CellPosition[] = [start];
+    let current = start;
+
+    // Keep walking until we hit a visited cell
+    while (!cells[current.y][current.x].visited) {
+      const directions: Direction[] = ['north', 'south', 'east', 'west'];
+      const validDirections = directions.filter((dir) => {
+        const next = this.getNextPosition(current.x, current.y, dir);
+        return (
+          this.isValidCell(next.x, next.y) &&
+          next.x % 2 === 1 &&
+          next.y % 2 === 1
+        ); // Only path cells
+      });
+
+      if (validDirections.length === 0) break;
+
+      const randomDirection =
+        validDirections[Math.floor(Math.random() * validDirections.length)];
+      current = this.getNextPosition(current.x, current.y, randomDirection);
+      path.push(current);
+    }
+
+    return path;
+  }
+
+  /**
+   * Random walk from a cell until reaching a visited cell (legacy method)
    */
   private randomWalk(cells: MazeCell[][], start: CellPosition): CellPosition[] {
     const path: CellPosition[] = [start];
@@ -719,6 +939,797 @@ export class MazeEngine {
     if (to.x < from.x) return 'west';
     if (to.y > from.y) return 'south';
     return 'north';
+  }
+
+  /**
+   * Recursive backtracking algorithm implementation (step by step)
+   */
+  private *generateRecursiveStepByStep(maze: Maze): Generator<GenerationStep> {
+    yield* this.carvePathStepByStep(maze.cells, 1, 1, maze);
+  }
+
+  /**
+   * Recursive backtracking algorithm implementation (step by step)
+   */
+  private *carvePathStepByStep(
+    cells: MazeCell[][],
+    x: number,
+    y: number,
+    maze: Maze
+  ): Generator<GenerationStep> {
+    cells[y][x].visited = true;
+    cells[y][x].type = 'path';
+
+    yield {
+      type: 'visit',
+      position: { x, y },
+      maze: {
+        ...maze,
+        cells: cells.map((row) => [...row]),
+      },
+    };
+
+    const directions: Direction[] = ['north', 'south', 'east', 'west'];
+    this.shuffleArray(directions);
+
+    for (const direction of directions) {
+      const next = this.getNextPosition(x, y, direction);
+
+      // Check if next cell is valid and unvisited
+      if (this.isValidCell(next.x, next.y) && !cells[next.y][next.x].visited) {
+        // Remove wall between current and next cell
+        this.removeWall(cells, x, y, direction);
+
+        yield {
+          type: 'carve',
+          position: { x, y },
+          direction,
+          maze: {
+            ...maze,
+            cells: cells.map((row) => [...row]),
+          },
+        };
+
+        // Recursively carve from next cell
+        yield* this.carvePathStepByStep(cells, next.x, next.y, maze);
+      }
+    }
+  }
+
+  /**
+   * Prim's algorithm implementation (step by step)
+   */
+  private *generatePrimStepByStep(maze: Maze): Generator<GenerationStep> {
+    const cells = maze.cells;
+    const walls: Array<{ x: number; y: number; direction: Direction }> = [];
+
+    // Mark start cell as path
+    cells[1][1].type = 'path';
+    cells[1][1].visited = true;
+
+    yield {
+      type: 'visit',
+      position: { x: 1, y: 1 },
+      maze: {
+        ...maze,
+        cells: cells.map((row) => [...row]),
+      },
+    };
+
+    // Add walls around start cell
+    this.addWalls(walls, 1, 1);
+
+    while (walls.length > 0) {
+      const randomIndex = Math.floor(Math.random() * walls.length);
+      const wall = walls[randomIndex];
+      walls.splice(randomIndex, 1);
+
+      const next = this.getNextPosition(wall.x, wall.y, wall.direction);
+
+      // If next cell is a wall (unvisited), connect it
+      if (
+        this.isValidCell(next.x, next.y) &&
+        cells[next.y][next.x].type === 'wall'
+      ) {
+        // Mark both cells as path
+        cells[wall.y][wall.x].type = 'path';
+        cells[wall.y][wall.x].visited = true;
+        cells[next.y][next.x].type = 'path';
+        cells[next.y][next.x].visited = true;
+
+        // Remove wall between them
+        this.removeWall(cells, wall.x, wall.y, wall.direction);
+
+        yield {
+          type: 'carve',
+          position: { x: wall.x, y: wall.y },
+          direction: wall.direction,
+          maze: {
+            ...maze,
+            cells: cells.map((row) => [...row]),
+          },
+        };
+
+        // Add walls around the new cell
+        this.addWalls(walls, next.x, next.y);
+      }
+    }
+  }
+
+  /**
+   * Kruskal's algorithm implementation (step by step)
+   */
+  private *generateKruskalStepByStep(maze: Maze): Generator<GenerationStep> {
+    const cells = maze.cells;
+    // Create list of all possible walls (edges between cells)
+    const walls: Array<{ x: number; y: number; direction: Direction }> = [];
+
+    // Add all possible walls between adjacent cells
+    for (let y = 0; y < this.config.height; y++) {
+      for (let x = 0; x < this.config.width; x++) {
+        // Only consider walls between path cells (odd coordinates)
+        if (x % 2 === 1 && y % 2 === 1) {
+          const directions: Direction[] = ['north', 'south', 'east', 'west'];
+          for (const direction of directions) {
+            const next = this.getNextPosition(x, y, direction);
+            // Only add walls to adjacent path cells
+            if (
+              this.isValidCell(next.x, next.y) &&
+              next.x % 2 === 1 &&
+              next.y % 2 === 1
+            ) {
+              walls.push({ x, y, direction });
+            }
+          }
+        }
+      }
+    }
+
+    // Shuffle walls for random selection
+    this.shuffleArray(walls);
+
+    // Union-Find data structure for tracking connected components
+    const cellToSet: number[] = [];
+    const sets: number[][] = [];
+    let setCount = 0;
+
+    // Initialize each path cell as its own set
+    for (let y = 1; y < this.config.height - 1; y += 2) {
+      for (let x = 1; x < this.config.width - 1; x += 2) {
+        const cellIndex = y * this.config.width + x;
+        cellToSet[cellIndex] = setCount;
+        sets[setCount] = [cellIndex];
+        setCount++;
+      }
+    }
+
+    // Process walls in random order
+    for (const wall of walls) {
+      const currentIndex = wall.y * this.config.width + wall.x;
+      const next = this.getNextPosition(wall.x, wall.y, wall.direction);
+      const nextIndex = next.y * this.config.width + next.x;
+
+      const currentSet = this.findSet(sets, cellToSet[currentIndex]);
+      const nextSet = this.findSet(sets, cellToSet[nextIndex]);
+
+      // If cells are in different sets, connect them
+      if (currentSet !== nextSet) {
+        // Mark both cells as path
+        cells[wall.y][wall.x].type = 'path';
+        cells[wall.y][wall.x].visited = true;
+        cells[next.y][next.x].type = 'path';
+        cells[next.y][next.x].visited = true;
+
+        // Remove wall between them
+        this.removeWall(cells, wall.x, wall.y, wall.direction);
+
+        yield {
+          type: 'carve',
+          position: { x: wall.x, y: wall.y },
+          direction: wall.direction,
+          maze: {
+            ...maze,
+            cells: cells.map((row) => [...row]),
+          },
+        };
+
+        // Union the sets
+        this.unionSets(sets, currentSet, nextSet, cellToSet);
+
+        // If all cells are connected, we can stop early
+        if (sets[currentSet].length === setCount) {
+          break;
+        }
+      }
+    }
+  }
+
+  /**
+   * Wilson's algorithm implementation (step by step)
+   */
+  private *generateWilsonStepByStep(maze: Maze): Generator<GenerationStep> {
+    const cells = maze.cells;
+    // Mark start cell as visited
+    cells[1][1].type = 'path';
+    cells[1][1].visited = true;
+
+    yield {
+      type: 'visit',
+      position: { x: 1, y: 1 },
+      maze: {
+        ...maze,
+        cells: cells.map((row) => [...row]),
+      },
+    };
+
+    const unvisited: CellPosition[] = [];
+
+    // Collect all unvisited cells (only odd coordinates for path cells)
+    for (let y = 1; y < this.config.height - 1; y += 2) {
+      for (let x = 1; x < this.config.width - 1; x += 2) {
+        if (!(x === 1 && y === 1)) {
+          unvisited.push({ x, y });
+        }
+      }
+    }
+
+    while (unvisited.length > 0) {
+      const randomIndex = Math.floor(Math.random() * unvisited.length);
+      const start = unvisited[randomIndex];
+
+      // Perform random walk until we hit a visited cell
+      const path = this.randomWalkWilson(cells, start);
+
+      // Carve the path and mark cells as visited
+      for (let i = 0; i < path.length - 1; i++) {
+        const current = path[i];
+        const next = path[i + 1];
+
+        cells[current.y][current.x].type = 'path';
+        cells[current.y][current.x].visited = true;
+
+        // Determine direction and remove wall
+        let direction: Direction;
+        if (next.x > current.x) {
+          direction = 'east';
+        } else if (next.x < current.x) {
+          direction = 'west';
+        } else if (next.y > current.y) {
+          direction = 'south';
+        } else {
+          direction = 'north';
+        }
+
+        this.removeWall(cells, current.x, current.y, direction);
+
+        yield {
+          type: 'carve',
+          position: { x: current.x, y: current.y },
+          direction,
+          maze: {
+            ...maze,
+            cells: cells.map((row) => [...row]),
+          },
+        };
+      }
+
+      // Remove all cells in the path from unvisited
+      for (let i = unvisited.length - 1; i >= 0; i--) {
+        const cell = unvisited[i];
+        if (cells[cell.y][cell.x].type === 'path') {
+          unvisited.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  /**
+   * Find path from start to end using specified algorithm
+   *
+   * @param maze - Maze to solve
+   * @param algorithm - Pathfinding algorithm to use
+   * @returns {PathfindingResult} Result of pathfinding
+   */
+  public findPath(
+    maze: Maze,
+    algorithm: PathfindingAlgorithm = 'astar'
+  ): PathfindingResult {
+    switch (algorithm) {
+      case 'bfs':
+        return this.findPathBFS(maze);
+      case 'dfs':
+        return this.findPathDFS(maze);
+      case 'astar':
+        return this.findPathAStar(maze);
+      default:
+        return this.findPathAStar(maze);
+    }
+  }
+
+  /**
+   * Find path step by step for animation
+   *
+   * @param maze - Maze to solve
+   * @param algorithm - Pathfinding algorithm to use
+   * @returns {Generator<PathfindingStep>} Generator yielding pathfinding steps
+   */
+  public *findPathStepByStep(
+    maze: Maze,
+    algorithm: PathfindingAlgorithm = 'astar'
+  ): Generator<PathfindingStep> {
+    switch (algorithm) {
+      case 'bfs':
+        yield* this.findPathBFSStepByStep(maze);
+        break;
+      case 'dfs':
+        yield* this.findPathDFSStepByStep(maze);
+        break;
+      case 'astar':
+        yield* this.findPathAStarStepByStep(maze);
+        break;
+      default:
+        yield* this.findPathAStarStepByStep(maze);
+    }
+  }
+
+  /**
+   * Breadth-First Search pathfinding
+   */
+  private findPathBFS(maze: Maze): PathfindingResult {
+    const visited = new Set<string>();
+    const queue: Array<{ position: CellPosition; path: CellPosition[] }> = [
+      { position: maze.start, path: [maze.start] },
+    ];
+    visited.add(`${maze.start.x},${maze.start.y}`);
+
+    let steps = 0;
+
+    while (queue.length > 0) {
+      const { position, path } = queue.shift()!;
+      steps++;
+
+      if (position.x === maze.end.x && position.y === maze.end.y) {
+        return {
+          path,
+          visited: Array.from(visited).map((key) => {
+            const [x, y] = key.split(',').map(Number);
+            return { x, y };
+          }),
+          found: true,
+          algorithm: 'bfs',
+          steps,
+        };
+      }
+
+      const directions: Direction[] = ['north', 'south', 'east', 'west'];
+      for (const direction of directions) {
+        const next = this.getNextPosition(position.x, position.y, direction);
+        const nextKey = `${next.x},${next.y}`;
+
+        if (
+          this.isValidCell(next.x, next.y) &&
+          !visited.has(nextKey) &&
+          this.canMove(maze.cells, position.x, position.y, direction)
+        ) {
+          visited.add(nextKey);
+          queue.push({ position: next, path: [...path, next] });
+        }
+      }
+    }
+
+    return {
+      path: [],
+      visited: Array.from(visited).map((key) => {
+        const [x, y] = key.split(',').map(Number);
+        return { x, y };
+      }),
+      found: false,
+      algorithm: 'bfs',
+      steps,
+    };
+  }
+
+  /**
+   * Depth-First Search pathfinding
+   */
+  private findPathDFS(maze: Maze): PathfindingResult {
+    const visited = new Set<string>();
+    const stack: Array<{ position: CellPosition; path: CellPosition[] }> = [
+      { position: maze.start, path: [maze.start] },
+    ];
+    visited.add(`${maze.start.x},${maze.start.y}`);
+
+    let steps = 0;
+
+    while (stack.length > 0) {
+      const { position, path } = stack.pop()!;
+      steps++;
+
+      if (position.x === maze.end.x && position.y === maze.end.y) {
+        return {
+          path,
+          visited: Array.from(visited).map((key) => {
+            const [x, y] = key.split(',').map(Number);
+            return { x, y };
+          }),
+          found: true,
+          algorithm: 'dfs',
+          steps,
+        };
+      }
+
+      const directions: Direction[] = ['north', 'south', 'east', 'west'];
+      for (const direction of directions) {
+        const next = this.getNextPosition(position.x, position.y, direction);
+        const nextKey = `${next.x},${next.y}`;
+
+        if (
+          this.isValidCell(next.x, next.y) &&
+          !visited.has(nextKey) &&
+          this.canMove(maze.cells, position.x, position.y, direction)
+        ) {
+          visited.add(nextKey);
+          stack.push({ position: next, path: [...path, next] });
+        }
+      }
+    }
+
+    return {
+      path: [],
+      visited: Array.from(visited).map((key) => {
+        const [x, y] = key.split(',').map(Number);
+        return { x, y };
+      }),
+      found: false,
+      algorithm: 'dfs',
+      steps,
+    };
+  }
+
+  /**
+   * A* pathfinding with Manhattan distance heuristic
+   */
+  private findPathAStar(maze: Maze): PathfindingResult {
+    const visited = new Set<string>();
+    const openSet: Array<{
+      position: CellPosition;
+      path: CellPosition[];
+      g: number;
+      h: number;
+      f: number;
+    }> = [
+      {
+        position: maze.start,
+        path: [maze.start],
+        g: 0,
+        h: this.manhattanDistance(maze.start, maze.end),
+        f: this.manhattanDistance(maze.start, maze.end),
+      },
+    ];
+    visited.add(`${maze.start.x},${maze.start.y}`);
+
+    let steps = 0;
+
+    while (openSet.length > 0) {
+      // Find node with lowest f score
+      let currentIndex = 0;
+      for (let i = 1; i < openSet.length; i++) {
+        if (openSet[i].f < openSet[currentIndex].f) {
+          currentIndex = i;
+        }
+      }
+
+      const current = openSet.splice(currentIndex, 1)[0];
+      steps++;
+
+      if (
+        current.position.x === maze.end.x &&
+        current.position.y === maze.end.y
+      ) {
+        return {
+          path: current.path,
+          visited: Array.from(visited).map((key) => {
+            const [x, y] = key.split(',').map(Number);
+            return { x, y };
+          }),
+          found: true,
+          algorithm: 'astar',
+          steps,
+        };
+      }
+
+      const directions: Direction[] = ['north', 'south', 'east', 'west'];
+      for (const direction of directions) {
+        const next = this.getNextPosition(
+          current.position.x,
+          current.position.y,
+          direction
+        );
+        const nextKey = `${next.x},${next.y}`;
+
+        if (
+          this.isValidCell(next.x, next.y) &&
+          !visited.has(nextKey) &&
+          this.canMove(
+            maze.cells,
+            current.position.x,
+            current.position.y,
+            direction
+          )
+        ) {
+          visited.add(nextKey);
+          const g = current.g + 1;
+          const h = this.manhattanDistance(next, maze.end);
+          const f = g + h;
+
+          openSet.push({
+            position: next,
+            path: [...current.path, next],
+            g,
+            h,
+            f,
+          });
+        }
+      }
+    }
+
+    return {
+      path: [],
+      visited: Array.from(visited).map((key) => {
+        const [x, y] = key.split(',').map(Number);
+        return { x, y };
+      }),
+      found: false,
+      algorithm: 'astar',
+      steps,
+    };
+  }
+
+  /**
+   * Calculate Manhattan distance between two positions
+   */
+  private manhattanDistance(a: CellPosition, b: CellPosition): number {
+    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  }
+
+  /**
+   * BFS pathfinding step by step
+   */
+  private *findPathBFSStepByStep(maze: Maze): Generator<PathfindingStep> {
+    const visited = new Set<string>();
+    const queue: Array<{ position: CellPosition; path: CellPosition[] }> = [
+      { position: maze.start, path: [maze.start] },
+    ];
+    visited.add(`${maze.start.x},${maze.start.y}`);
+
+    while (queue.length > 0) {
+      const { position, path } = queue.shift()!;
+
+      yield {
+        type: 'visit',
+        position,
+        path,
+        visited: Array.from(visited).map((key) => {
+          const [x, y] = key.split(',').map(Number);
+          return { x, y };
+        }),
+        found: false,
+      };
+
+      if (position.x === maze.end.x && position.y === maze.end.y) {
+        yield {
+          type: 'complete',
+          position,
+          path,
+          visited: Array.from(visited).map((key) => {
+            const [x, y] = key.split(',').map(Number);
+            return { x, y };
+          }),
+          found: true,
+        };
+        return;
+      }
+
+      const directions: Direction[] = ['north', 'south', 'east', 'west'];
+      for (const direction of directions) {
+        const next = this.getNextPosition(position.x, position.y, direction);
+        const nextKey = `${next.x},${next.y}`;
+
+        if (
+          this.isValidCell(next.x, next.y) &&
+          !visited.has(nextKey) &&
+          this.canMove(maze.cells, position.x, position.y, direction)
+        ) {
+          visited.add(nextKey);
+          queue.push({ position: next, path: [...path, next] });
+        }
+      }
+    }
+
+    yield {
+      type: 'complete',
+      position: maze.end,
+      path: [],
+      visited: Array.from(visited).map((key) => {
+        const [x, y] = key.split(',').map(Number);
+        return { x, y };
+      }),
+      found: false,
+    };
+  }
+
+  /**
+   * DFS pathfinding step by step
+   */
+  private *findPathDFSStepByStep(maze: Maze): Generator<PathfindingStep> {
+    const visited = new Set<string>();
+    const stack: Array<{ position: CellPosition; path: CellPosition[] }> = [
+      { position: maze.start, path: [maze.start] },
+    ];
+    visited.add(`${maze.start.x},${maze.start.y}`);
+
+    while (stack.length > 0) {
+      const { position, path } = stack.pop()!;
+
+      yield {
+        type: 'visit',
+        position,
+        path,
+        visited: Array.from(visited).map((key) => {
+          const [x, y] = key.split(',').map(Number);
+          return { x, y };
+        }),
+        found: false,
+      };
+
+      if (position.x === maze.end.x && position.y === maze.end.y) {
+        yield {
+          type: 'complete',
+          position,
+          path,
+          visited: Array.from(visited).map((key) => {
+            const [x, y] = key.split(',').map(Number);
+            return { x, y };
+          }),
+          found: true,
+        };
+        return;
+      }
+
+      const directions: Direction[] = ['north', 'south', 'east', 'west'];
+      for (const direction of directions) {
+        const next = this.getNextPosition(position.x, position.y, direction);
+        const nextKey = `${next.x},${next.y}`;
+
+        if (
+          this.isValidCell(next.x, next.y) &&
+          !visited.has(nextKey) &&
+          this.canMove(maze.cells, position.x, position.y, direction)
+        ) {
+          visited.add(nextKey);
+          stack.push({ position: next, path: [...path, next] });
+        }
+      }
+    }
+
+    yield {
+      type: 'complete',
+      position: maze.end,
+      path: [],
+      visited: Array.from(visited).map((key) => {
+        const [x, y] = key.split(',').map(Number);
+        return { x, y };
+      }),
+      found: false,
+    };
+  }
+
+  /**
+   * A* pathfinding step by step
+   */
+  private *findPathAStarStepByStep(maze: Maze): Generator<PathfindingStep> {
+    const visited = new Set<string>();
+    const openSet: Array<{
+      position: CellPosition;
+      path: CellPosition[];
+      g: number;
+      h: number;
+      f: number;
+    }> = [
+      {
+        position: maze.start,
+        path: [maze.start],
+        g: 0,
+        h: this.manhattanDistance(maze.start, maze.end),
+        f: this.manhattanDistance(maze.start, maze.end),
+      },
+    ];
+    visited.add(`${maze.start.x},${maze.start.y}`);
+
+    while (openSet.length > 0) {
+      // Find node with lowest f score
+      let currentIndex = 0;
+      for (let i = 1; i < openSet.length; i++) {
+        if (openSet[i].f < openSet[currentIndex].f) {
+          currentIndex = i;
+        }
+      }
+
+      const current = openSet.splice(currentIndex, 1)[0];
+
+      yield {
+        type: 'visit',
+        position: current.position,
+        path: current.path,
+        visited: Array.from(visited).map((key) => {
+          const [x, y] = key.split(',').map(Number);
+          return { x, y };
+        }),
+        found: false,
+      };
+
+      if (
+        current.position.x === maze.end.x &&
+        current.position.y === maze.end.y
+      ) {
+        yield {
+          type: 'complete',
+          position: current.position,
+          path: current.path,
+          visited: Array.from(visited).map((key) => {
+            const [x, y] = key.split(',').map(Number);
+            return { x, y };
+          }),
+          found: true,
+        };
+        return;
+      }
+
+      const directions: Direction[] = ['north', 'south', 'east', 'west'];
+      for (const direction of directions) {
+        const next = this.getNextPosition(
+          current.position.x,
+          current.position.y,
+          direction
+        );
+        const nextKey = `${next.x},${next.y}`;
+
+        if (
+          this.isValidCell(next.x, next.y) &&
+          !visited.has(nextKey) &&
+          this.canMove(
+            maze.cells,
+            current.position.x,
+            current.position.y,
+            direction
+          )
+        ) {
+          visited.add(nextKey);
+          const g = current.g + 1;
+          const h = this.manhattanDistance(next, maze.end);
+          const f = g + h;
+
+          openSet.push({
+            position: next,
+            path: [...current.path, next],
+            g,
+            h,
+            f,
+          });
+        }
+      }
+    }
+
+    yield {
+      type: 'complete',
+      position: maze.end,
+      path: [],
+      visited: Array.from(visited).map((key) => {
+        const [x, y] = key.split(',').map(Number);
+        return { x, y };
+      }),
+      found: false,
+    };
   }
 
   /**

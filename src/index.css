@@ -32,6 +32,18 @@
   .card {
     @apply glass rounded-xl p-6 shadow-xl;
   }
+
+  .maze-container {
+    @apply relative;
+    /* Prevent page scroll when interacting with maze */
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .maze-container * {
+    touch-action: none;
+  }
 }
 
 /* Custom scrollbar */

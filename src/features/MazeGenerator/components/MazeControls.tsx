@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { Button, Slider } from '../../../shared/ui';
 import { MazeConfig } from '../../../shared/types';
+import { PathfindingAlgorithm } from '../../../entities/maze/lib';
 
 /**
  * Props for the MazeControls component
@@ -13,12 +14,36 @@ interface MazeControlsProps {
   onConfigChange: (config: Partial<MazeConfig>) => void;
   /** Callback for maze generation */
   onGenerate: () => void;
+  /** Callback for animated maze generation */
+  onGenerateAnimated: () => void;
   /** Callback for clearing current maze */
   onClear: () => void;
   /** Callback for clearing history */
   onClearHistory: () => void;
   /** Loading state */
   isLoading: boolean;
+  /** Whether animation is active */
+  isAnimating: boolean;
+  /** Animation speed */
+  animationSpeed: number;
+  /** Callback for setting animation speed */
+  onSetAnimationSpeed: (speed: number) => void;
+  /** Callback for stopping animation */
+  onStopAnimation: () => void;
+  /** Whether pathfinding is active */
+  isPathfinding: boolean;
+  /** Current pathfinding algorithm */
+  pathfindingAlgorithm: PathfindingAlgorithm;
+  /** Callback for setting pathfinding algorithm */
+  onSetPathfindingAlgorithm: (algorithm: PathfindingAlgorithm) => void;
+  /** Callback for solving maze */
+  onSolveMaze: () => void;
+  /** Callback for solving maze with animation */
+  onSolveMazeAnimated: () => void;
+  /** Callback for stopping pathfinding */
+  onStopPathfinding: () => void;
+  /** Callback for clearing pathfinding result */
+  onClearPathfinding: () => void;
   /** Whether history exists */
   hasHistory: boolean;
   /** Whether can go to previous maze */
@@ -59,9 +84,21 @@ const MazeControlsComponent = ({
   config,
   onConfigChange,
   onGenerate,
+  onGenerateAnimated,
   onClear,
   onClearHistory,
   isLoading,
+  isAnimating,
+  animationSpeed,
+  onSetAnimationSpeed,
+  onStopAnimation,
+  isPathfinding,
+  pathfindingAlgorithm,
+  onSetPathfindingAlgorithm,
+  onSolveMaze,
+  onSolveMazeAnimated,
+  onStopPathfinding,
+  onClearPathfinding,
   hasHistory,
   canGoPrevious,
   canGoNext,
@@ -209,9 +246,50 @@ const MazeControlsComponent = ({
             step={1}
             value={config.wallThickness}
             onChange={handleWallThicknessChange}
-            disabled={isLoading}
+            disabled={isLoading || isAnimating}
             className="w-full"
           />
+        </div>
+
+        {/* Animation Speed Control */}
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">
+            Скорость анимации: {animationSpeed} шагов/сек
+          </label>
+          <Slider
+            label="Скорость анимации"
+            min={1}
+            max={50}
+            step={1}
+            value={animationSpeed}
+            onChange={onSetAnimationSpeed}
+            disabled={isLoading || isAnimating || isPathfinding}
+            className="w-full"
+          />
+        </div>
+
+        {/* Pathfinding Algorithm Selection */}
+        <div>
+          <label
+            htmlFor="pathfinding-algorithm-select"
+            className="block text-sm font-medium text-white mb-2"
+          >
+            Алгоритм решения
+          </label>
+          <select
+            id="pathfinding-algorithm-select"
+            value={pathfindingAlgorithm}
+            onChange={(e) =>
+              onSetPathfindingAlgorithm(e.target.value as PathfindingAlgorithm)
+            }
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading || isAnimating || isPathfinding}
+            aria-label="Select pathfinding algorithm"
+          >
+            <option value="astar">A* (A-Star)</option>
+            <option value="bfs">BFS (Breadth-First)</option>
+            <option value="dfs">DFS (Depth-First)</option>
+          </select>
         </div>
 
         {/* Preset Sizes */}
@@ -240,10 +318,61 @@ const MazeControlsComponent = ({
       <div className="mt-4 flex flex-wrap gap-2">
         <Button
           onClick={onGenerate}
-          disabled={isLoading}
+          disabled={isLoading || isAnimating}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           {isLoading ? 'Генерация...' : 'Сгенерировать'}
+        </Button>
+
+        <Button
+          onClick={onGenerateAnimated}
+          disabled={isLoading || isAnimating}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          {isAnimating ? 'Анимация...' : 'С анимацией'}
+        </Button>
+
+        {isAnimating && (
+          <Button
+            onClick={onStopAnimation}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Остановить
+          </Button>
+        )}
+
+        <Button
+          onClick={onSolveMaze}
+          disabled={isLoading || isAnimating || isPathfinding}
+          className="bg-purple-600 hover:bg-purple-700 text-white"
+        >
+          {isPathfinding ? 'Решение...' : 'Решить'}
+        </Button>
+
+        <Button
+          onClick={onSolveMazeAnimated}
+          disabled={isLoading || isAnimating || isPathfinding}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white"
+        >
+          {isPathfinding ? 'Решение...' : 'Решить с анимацией'}
+        </Button>
+
+        {isPathfinding && (
+          <Button
+            onClick={onStopPathfinding}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Остановить решение
+          </Button>
+        )}
+
+        <Button
+          variant="ghost"
+          onClick={onClearPathfinding}
+          disabled={isLoading || isAnimating || isPathfinding}
+          className="text-white border-white/20 hover:bg-white/10"
+        >
+          Очистить решение
         </Button>
 
         <Button

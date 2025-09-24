@@ -1,5 +1,10 @@
 import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
-import { Maze } from '../../../entities/maze/lib';
+import {
+  Maze,
+  GenerationStep,
+  PathfindingStep,
+  PathfindingResult,
+} from '../../../entities/maze/lib';
 import { MazeConfig } from '../../../shared/types';
 
 /**
@@ -11,10 +16,20 @@ interface MazeCanvasProps {
   maze: Maze;
   /** Configuration for rendering the maze */
   config: MazeConfig;
+  /** Current generation step for animation */
+  currentStep?: GenerationStep | null;
+  /** Whether animation is active */
+  isAnimating?: boolean;
+  /** Current pathfinding step for animation */
+  currentPathfindingStep?: PathfindingStep | null;
+  /** Whether pathfinding is active */
+  isPathfinding?: boolean;
+  /** Pathfinding result to display */
+  pathfindingResult?: PathfindingResult | null;
 }
 
 /**
- * Color mapping for different cell types
+ * Color mapping for different cell types and animation states
  * @constant CELL_COLORS
  */
 const CELL_COLORS = {
@@ -22,6 +37,10 @@ const CELL_COLORS = {
   end: '#ef4444',
   path: '#374151',
   wall: '#111827',
+  current: '#3b82f6',
+  visited: '#6b7280',
+  pathfinding: '#f59e0b',
+  solution: '#8b5cf6',
 } as const;
 
 /**
@@ -36,7 +55,15 @@ const CELL_COLORS = {
  * @param props - Component props
  * @returns {JSX.Element} Rendered maze canvas
  */
-const MazeCanvasComponent = ({ maze, config }: MazeCanvasProps) => {
+const MazeCanvasComponent = ({
+  maze,
+  config,
+  currentStep,
+  isAnimating = false,
+  currentPathfindingStep,
+  isPathfinding = false,
+  pathfindingResult,
+}: MazeCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -86,8 +113,69 @@ const MazeCanvasComponent = ({ maze, config }: MazeCanvasProps) => {
         const cellX = x * cellSize + offset.x;
         const cellY = y * cellSize + offset.y;
 
-        // Draw cell background
-        ctx.fillStyle = CELL_COLORS[cell.type];
+        // Draw cell background with animation support
+        let cellColor: string = CELL_COLORS[cell.type];
+
+        // Highlight current step during animation
+        if (isAnimating && currentStep) {
+          if (
+            currentStep.type === 'visit' &&
+            x === currentStep.position.x &&
+            y === currentStep.position.y
+          ) {
+            cellColor = CELL_COLORS.current;
+          } else if (
+            currentStep.type === 'carve' &&
+            ((x === currentStep.position.x && y === currentStep.position.y) ||
+              (currentStep.direction &&
+                x ===
+                  currentStep.position.x +
+                    (currentStep.direction === 'east'
+                      ? 1
+                      : currentStep.direction === 'west'
+                        ? -1
+                        : 0) &&
+                y ===
+                  currentStep.position.y +
+                    (currentStep.direction === 'south'
+                      ? 1
+                      : currentStep.direction === 'north'
+                        ? -1
+                        : 0)))
+          ) {
+            cellColor = CELL_COLORS.current;
+          }
+        }
+
+        // Highlight pathfinding visualization
+        if (isPathfinding && currentPathfindingStep) {
+          // Highlight visited cells
+          if (
+            currentPathfindingStep.visited.some(
+              (pos) => pos.x === x && pos.y === y
+            )
+          ) {
+            cellColor = CELL_COLORS.visited;
+          }
+          // Highlight current position
+          if (
+            x === currentPathfindingStep.position.x &&
+            y === currentPathfindingStep.position.y
+          ) {
+            cellColor = CELL_COLORS.pathfinding;
+          }
+        }
+
+        // Show final solution path
+        if (pathfindingResult && pathfindingResult.found) {
+          if (
+            pathfindingResult.path.some((pos) => pos.x === x && pos.y === y)
+          ) {
+            cellColor = CELL_COLORS.solution;
+          }
+        }
+
+        ctx.fillStyle = cellColor;
         ctx.fillRect(cellX, cellY, cellSize, cellSize);
 
         // Draw walls
@@ -111,7 +199,16 @@ const MazeCanvasComponent = ({ maze, config }: MazeCanvasProps) => {
     }
 
     ctx.stroke();
-  }, [maze, offset, renderParams]);
+  }, [
+    maze,
+    offset,
+    renderParams,
+    currentStep,
+    isAnimating,
+    currentPathfindingStep,
+    isPathfinding,
+    pathfindingResult,
+  ]);
 
   /**
    * Handle mouse down event for dragging
@@ -146,15 +243,6 @@ const MazeCanvasComponent = ({ maze, config }: MazeCanvasProps) => {
   }, []);
 
   /**
-   * Handle wheel event for zooming
-   */
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setScale((prev) => Math.max(0.1, Math.min(5, prev * delta)));
-  }, []);
-
-  /**
    * Reset view to default position and scale
    */
   const resetView = useCallback(() => {
@@ -185,7 +273,7 @@ const MazeCanvasComponent = ({ maze, config }: MazeCanvasProps) => {
     });
   }, [maze, config]);
 
-  // Оптимизация: объединяем эффекты
+  // Setup native event listeners for better control
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -194,16 +282,68 @@ const MazeCanvasComponent = ({ maze, config }: MazeCanvasProps) => {
     canvas.width = 800;
     canvas.height = 600;
 
+    // Add native wheel event listener for zooming
+    const wheelHandler = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      setScale((prev) => Math.max(0.1, Math.min(5, prev * delta)));
+      return false;
+    };
+
+    // Use capture phase to intercept events before they reach other handlers
+    canvas.addEventListener('wheel', wheelHandler, {
+      passive: false,
+      capture: true,
+    });
+
     // Initial fit to screen
     fitToScreen();
+
+    // Cleanup
+    return () => {
+      canvas.removeEventListener('wheel', wheelHandler, { capture: true });
+    };
   }, [maze, fitToScreen]);
 
   useEffect(() => {
     drawMaze();
   }, [drawMaze]);
 
+  // Setup container touch event listeners for mobile
+  useEffect(() => {
+    const container = document.querySelector('.maze-container');
+    if (!container) return;
+
+    const containerTouchHandler = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      return false;
+    };
+
+    container.addEventListener('touchstart', containerTouchHandler, {
+      passive: false,
+      capture: true,
+    });
+    container.addEventListener('touchmove', containerTouchHandler, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      container.removeEventListener('touchstart', containerTouchHandler, {
+        capture: true,
+      });
+      container.removeEventListener('touchmove', containerTouchHandler, {
+        capture: true,
+      });
+    };
+  }, []);
+
   return (
-    <div className="relative">
+    <div className="relative overflow-hidden" style={{ touchAction: 'none' }}>
       <canvas
         ref={canvasRef}
         className="border border-gray-700/50 rounded-lg cursor-move"
@@ -211,7 +351,6 @@ const MazeCanvasComponent = ({ maze, config }: MazeCanvasProps) => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
         style={{ touchAction: 'none' }}
         role="img"
         aria-label={`Maze with ${maze.width} by ${maze.height} cells, generated using ${config.algorithm} algorithm`}

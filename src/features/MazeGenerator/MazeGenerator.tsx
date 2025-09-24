@@ -26,8 +26,23 @@ export const MazeGenerator = observer(() => {
     error,
     history,
     historyIndex,
+    isAnimating,
+    animationSpeed,
+    currentStep,
+    isPathfinding,
+    currentPathfindingStep,
+    pathfindingResult,
+    pathfindingAlgorithm,
     updateConfig,
     generateMaze,
+    generateMazeWithAnimation,
+    setAnimationSpeed,
+    stopAnimation,
+    solveMaze,
+    solveMazeWithAnimation,
+    setPathfindingAlgorithm,
+    stopPathfinding,
+    clearPathfinding,
     clearMaze,
     setError,
     goToPrevious,
@@ -46,6 +61,36 @@ export const MazeGenerator = observer(() => {
       setError(result.error || 'Failed to generate maze');
     }
   }, [generateMaze, setError]);
+
+  /**
+   * Handle animated maze generation
+   */
+  const handleGenerateAnimated = useCallback(async () => {
+    const result = await generateMazeWithAnimation();
+    if (!result.success) {
+      setError(result.error || 'Failed to generate maze');
+    }
+  }, [generateMazeWithAnimation, setError]);
+
+  /**
+   * Handle maze solving
+   */
+  const handleSolveMaze = useCallback(async () => {
+    const result = await solveMaze();
+    if (!result.success) {
+      setError(result.error || 'Failed to solve maze');
+    }
+  }, [solveMaze, setError]);
+
+  /**
+   * Handle animated maze solving
+   */
+  const handleSolveMazeAnimated = useCallback(async () => {
+    const result = await solveMazeWithAnimation();
+    if (!result.success) {
+      setError(result.error || 'Failed to solve maze');
+    }
+  }, [solveMazeWithAnimation, setError]);
 
   /**
    * Handle configuration changes
@@ -139,9 +184,21 @@ export const MazeGenerator = observer(() => {
             config={config}
             onConfigChange={handleConfigChange}
             onGenerate={handleGenerateMaze}
+            onGenerateAnimated={handleGenerateAnimated}
             onClear={handleClear}
             onClearHistory={handleClearHistory}
             isLoading={isLoading}
+            isAnimating={isAnimating}
+            animationSpeed={animationSpeed}
+            onSetAnimationSpeed={setAnimationSpeed}
+            onStopAnimation={stopAnimation}
+            isPathfinding={isPathfinding}
+            pathfindingAlgorithm={pathfindingAlgorithm}
+            onSetPathfindingAlgorithm={setPathfindingAlgorithm}
+            onSolveMaze={handleSolveMaze}
+            onSolveMazeAnimated={handleSolveMazeAnimated}
+            onStopPathfinding={stopPathfinding}
+            onClearPathfinding={clearPathfinding}
             hasHistory={history.length > 0}
             canGoPrevious={historyIndex > 0}
             canGoNext={historyIndex < history.length - 1}
@@ -152,7 +209,17 @@ export const MazeGenerator = observer(() => {
 
         <div className="mt-6">
           {maze ? (
-            <MazeCanvas maze={maze} config={config} />
+            <div className="maze-container" style={{ touchAction: 'none' }}>
+              <MazeCanvas
+                maze={maze}
+                config={config}
+                currentStep={currentStep}
+                isAnimating={isAnimating}
+                currentPathfindingStep={currentPathfindingStep}
+                isPathfinding={isPathfinding}
+                pathfindingResult={pathfindingResult}
+              />
+            </div>
           ) : (
             <div className="flex items-center justify-center h-96 bg-gray-800/50 rounded-lg border border-gray-700/50">
               {isLoading ? (
@@ -174,6 +241,14 @@ export const MazeGenerator = observer(() => {
             <div>
               Размер: {maze.width} × {maze.height} | Алгоритм:{' '}
               {config.algorithm} | История: {history.length} лабиринтов
+              {pathfindingResult && (
+                <span className="ml-4">
+                  | Решение:{' '}
+                  {pathfindingResult.found
+                    ? `${pathfindingResult.path.length} шагов (${pathfindingResult.algorithm})`
+                    : 'Не найдено'}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button

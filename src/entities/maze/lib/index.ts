@@ -6,4 +6,8 @@ export type {
   CellWalls,
   MazeCell,
   Maze,
+  PathfindingResult,
+  PathfindingAlgorithm,
+  PathfindingStep,
+  GenerationStep,
 } from './maze-engine';
