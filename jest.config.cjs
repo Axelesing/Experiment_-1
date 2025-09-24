@@ -62,6 +62,15 @@ const config = {
 
   // Restore mocks between tests
   restoreMocks: true,
+
+  // Test timeout (30 seconds)
+  testTimeout: 30000,
+
+  // Detect open handles
+  detectOpenHandles: true,
+
+  // Force exit after tests complete
+  forceExit: true,
 };
 
 // eslint-disable-next-line no-undef

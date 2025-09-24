@@ -26,22 +26,25 @@ export const PatternGenerator = observer(() => {
   const ui = patternStore.ui;
   const actions = patternStore.actions;
 
-  const updatePattern = useCallback((deltaTime: number = 1) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const updatePattern = useCallback(
+    (deltaTime: number = 1) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Update animation with real deltaTime
-    animation.updateAnimation(deltaTime);
+      // Update animation with real deltaTime
+      animation.updateAnimation(deltaTime);
 
-    // Render pattern
-    canvasActions.renderPattern(ctx);
-  }, []);
+      // Render pattern
+      canvasActions.renderPattern(ctx);
+    },
+    [animation, canvasActions]
+  );
 
   const animate = useCallback(() => {
     const currentTime = performance.now();
@@ -76,7 +79,7 @@ export const PatternGenerator = observer(() => {
     return () => {
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, []);
+  }, [canvasActions]);
 
   useEffect(() => {
     if (config.patternAnimation) {
@@ -91,7 +94,6 @@ export const PatternGenerator = observer(() => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animate, updatePattern, config.patternAnimation]);
 
   // Update pattern when settings change (but not animation)
@@ -143,7 +145,7 @@ export const PatternGenerator = observer(() => {
     } finally {
       setIsDownloading(false);
     }
-  }, []);
+  }, [canvasActions, config.patternType, ui]);
 
   const handleGenerateRandomPattern = useCallback(() => {
     try {

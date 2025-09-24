@@ -54,24 +54,6 @@ export interface ColorPalette {
 }
 
 /**
- * Fractal rendering configuration
- */
-export interface FractalConfig {
-  /** Fractal type */
-  type: 'mandelbrot' | 'julia' | 'sierpinski' | 'koch';
-  /** Iteration count for rendering */
-  iterations: number;
-  /** Zoom level */
-  zoom: number;
-  /** X offset */
-  offsetX: number;
-  /** Y offset */
-  offsetY: number;
-  /** Color scheme identifier */
-  colorScheme: string;
-}
-
-/**
  * Maze generation configuration
  */
 export interface MazeConfig {
@@ -85,26 +67,6 @@ export interface MazeConfig {
   cellSize: number;
   /** Wall thickness in pixels */
   wallThickness: number;
-}
-
-/**
- * Typography configuration
- */
-export interface TypographyConfig {
-  /** Font family */
-  fontFamily: string;
-  /** Font size in pixels */
-  fontSize: number;
-  /** Font weight */
-  fontWeight: number;
-  /** Line height multiplier */
-  lineHeight: number;
-  /** Letter spacing in pixels */
-  letterSpacing: number;
-  /** Text alignment */
-  textAlign: 'left' | 'center' | 'right' | 'justify';
-  /** Text transformation */
-  textTransform: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
 }
 
 /**

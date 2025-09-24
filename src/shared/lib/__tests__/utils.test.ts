@@ -1,12 +1,4 @@
-import {
-  cn,
-  debounce,
-  throttle,
-  lerp,
-  clamp,
-  randomBetween,
-  randomInt,
-} from '../utils';
+import { cn, debounce, throttle, clamp, randomBetween } from '../utils';
 
 describe('utils', () => {
   describe('cn', () => {
@@ -92,20 +84,6 @@ describe('utils', () => {
     });
   });
 
-  describe('lerp', () => {
-    it('should interpolate between two numbers', () => {
-      expect(lerp(0, 10, 0.5)).toBe(5);
-      expect(lerp(0, 10, 0)).toBe(0);
-      expect(lerp(0, 10, 1)).toBe(10);
-      expect(lerp(10, 20, 0.3)).toBe(13);
-    });
-
-    it('should handle negative numbers', () => {
-      expect(lerp(-10, 10, 0.5)).toBe(0);
-      expect(lerp(-5, -15, 0.5)).toBe(-10);
-    });
-  });
-
   describe('clamp', () => {
     it('should clamp values within range', () => {
       expect(clamp(5, 0, 10)).toBe(5);
@@ -130,20 +108,6 @@ describe('utils', () => {
       const result = randomBetween(-10, -5);
       expect(result).toBeGreaterThanOrEqual(-10);
       expect(result).toBeLessThan(-5);
-    });
-  });
-
-  describe('randomInt', () => {
-    it('should generate random integers within range', () => {
-      const result = randomInt(1, 5);
-      expect(result).toBeGreaterThanOrEqual(1);
-      expect(result).toBeLessThanOrEqual(5);
-      expect(Number.isInteger(result)).toBe(true);
-    });
-
-    it('should handle single value range', () => {
-      const result = randomInt(5, 5);
-      expect(result).toBe(5);
     });
   });
 });

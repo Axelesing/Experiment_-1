@@ -30,18 +30,10 @@ export function throttle<TArgs extends readonly unknown[], TReturn>(
   };
 }
 
-export function lerp(start: number, end: number, factor: number): number {
-  return start + (end - start) * factor;
-}
-
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
 export function randomBetween(min: number, max: number): number {
   return Math.random() * (max - min) + min;
-}
-
-export function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
 }

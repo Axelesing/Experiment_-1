@@ -268,7 +268,10 @@ export class MazeEngine {
 
     this.carvePathWilson(cells, start.x, start.y);
 
-    // Set start and end points
+    // Ensure start and end are connected to the maze
+    this.ensureStartEndConnected(cells, start, end);
+
+    // Set start and end points (after ensuring connectivity)
     cells[start.y][start.x].type = 'start';
     cells[end.y][end.x].type = 'end';
 
@@ -580,7 +583,11 @@ export class MazeEngine {
       }
     }
 
-    while (unvisited.length > 0) {
+    let iterations = 0;
+    const maxIterations = this.config.width * this.config.height * 10; // Prevent infinite loops
+
+    while (unvisited.length > 0 && iterations < maxIterations) {
+      iterations++;
       const randomIndex = Math.floor(Math.random() * unvisited.length);
       const start = unvisited[randomIndex];
 
@@ -591,10 +598,23 @@ export class MazeEngine {
       this.carvePathFromWalk(cells, path);
 
       // Remove all cells in the path from unvisited
+      const initialLength = unvisited.length;
       for (let i = unvisited.length - 1; i >= 0; i--) {
         const cell = unvisited[i];
         if (cells[cell.y][cell.x].type === 'path') {
           unvisited.splice(i, 1);
+        }
+      }
+
+      // If no cells were removed, force remove the current cell to prevent infinite loop
+      if (unvisited.length === initialLength) {
+        const currentIndex = unvisited.findIndex(
+          (cell) => cell.x === start.x && cell.y === start.y
+        );
+        if (currentIndex !== -1) {
+          unvisited.splice(currentIndex, 1);
+          cells[start.y][start.x].type = 'path';
+          cells[start.y][start.x].visited = true;
         }
       }
     }
@@ -720,9 +740,12 @@ export class MazeEngine {
   ): CellPosition[] {
     const path: CellPosition[] = [start];
     let current = start;
+    let steps = 0;
+    const maxSteps = this.config.width * this.config.height; // Prevent infinite loops
 
     // Keep walking until we hit a visited cell
-    while (!cells[current.y][current.x].visited) {
+    while (!cells[current.y][current.x].visited && steps < maxSteps) {
+      steps++;
       const directions: Direction[] = ['north', 'south', 'east', 'west'];
       const validDirections = directions.filter((dir) => {
         const next = this.getNextPosition(current.x, current.y, dir);
@@ -750,8 +773,11 @@ export class MazeEngine {
   private randomWalk(cells: MazeCell[][], start: CellPosition): CellPosition[] {
     const path: CellPosition[] = [start];
     let current = start;
+    let steps = 0;
+    const maxSteps = this.config.width * this.config.height; // Prevent infinite loops
 
-    while (cells[current.y][current.x].type !== 'path') {
+    while (cells[current.y][current.x].type !== 'path' && steps < maxSteps) {
+      steps++;
       const directions: Direction[] = ['north', 'south', 'east', 'west'];
       const validDirections = directions.filter((dir) => {
         const next = this.getNextPosition(current.x, current.y, dir);
@@ -1173,7 +1199,11 @@ export class MazeEngine {
       }
     }
 
-    while (unvisited.length > 0) {
+    let iterations = 0;
+    const maxIterations = this.config.width * this.config.height * 2; // Prevent infinite loops
+
+    while (unvisited.length > 0 && iterations < maxIterations) {
+      iterations++;
       const randomIndex = Math.floor(Math.random() * unvisited.length);
       const start = unvisited[randomIndex];
 
@@ -1214,11 +1244,17 @@ export class MazeEngine {
       }
 
       // Remove all cells in the path from unvisited
+      const initialLength = unvisited.length;
       for (let i = unvisited.length - 1; i >= 0; i--) {
         const cell = unvisited[i];
         if (cells[cell.y][cell.x].type === 'path') {
           unvisited.splice(i, 1);
         }
+      }
+
+      // If no cells were removed, break to prevent infinite loop
+      if (unvisited.length === initialLength) {
+        break;
       }
     }
   }

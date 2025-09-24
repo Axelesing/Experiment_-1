@@ -1,6 +1,6 @@
-export { appStore, AppStore } from './AppStore';
-export { particleStore, ParticleStore } from './ParticleStore';
-export { patternStore, PatternStore } from './PatternStore';
-export { asciiStore, AsciiStore } from './AsciiStore';
-export { colorStore, ColorStore } from './ColorStore';
-export { mazeStore, MazeStore } from './MazeStore';
+export { appStore } from './AppStore';
+export { particleStore } from './ParticleStore';
+export { patternStore } from './PatternStore';
+export { asciiStore } from './AsciiStore';
+export { colorStore } from './ColorStore';
+export { mazeStore } from './MazeStore';
