@@ -18,6 +18,14 @@ export const PatternGenerator = observer(() => {
   const lastTimeRef = useRef<number>(0);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Use grouped functionality from store
+  const config = patternStore.config;
+  const animation = patternStore.animation;
+  const colors = patternStore.colors;
+  const canvasActions = patternStore.canvas;
+  const ui = patternStore.ui;
+  const actions = patternStore.actions;
+
   const updatePattern = useCallback((deltaTime: number = 1) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -29,10 +37,10 @@ export const PatternGenerator = observer(() => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Update animation with real deltaTime
-    patternStore.updateAnimation(deltaTime);
+    animation.updateAnimation(deltaTime);
 
     // Render pattern
-    patternStore.renderPattern(ctx);
+    canvasActions.renderPattern(ctx);
   }, []);
 
   const animate = useCallback(() => {
@@ -57,7 +65,7 @@ export const PatternGenerator = observer(() => {
       if (width > 0 && height > 0) {
         canvas.width = width;
         canvas.height = height;
-        patternStore.setCanvasSize(width, height);
+        canvasActions.setCanvasSize(width, height);
       }
     };
 
@@ -71,7 +79,7 @@ export const PatternGenerator = observer(() => {
   }, []);
 
   useEffect(() => {
-    if (patternStore.patternAnimation) {
+    if (config.patternAnimation) {
       lastTimeRef.current = 0; // Reset time when starting animation
       animate();
     } else {
@@ -84,20 +92,20 @@ export const PatternGenerator = observer(() => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animate, updatePattern, patternStore.patternAnimation]);
+  }, [animate, updatePattern, config.patternAnimation]);
 
   // Update pattern when settings change (but not animation)
   useEffect(() => {
-    if (!patternStore.patternAnimation) {
+    if (!config.patternAnimation) {
       updatePattern(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    patternStore.patternType,
-    patternStore.patternComplexity,
-    patternStore.patternDensity,
-    patternStore.patternSymmetry,
-    patternStore.patternColors,
+    config.patternType,
+    config.patternComplexity,
+    config.patternDensity,
+    config.patternSymmetry,
+    config.patternColors,
     updatePattern,
   ]);
 
@@ -122,16 +130,16 @@ export const PatternGenerator = observer(() => {
       tempCtx.scale(scale, scale);
 
       // Render the pattern at higher resolution
-      patternStore.renderPattern(tempCtx);
+      canvasActions.renderPattern(tempCtx);
 
       // Download the high-res version
       const link = document.createElement('a');
-      link.download = `pattern-${patternStore.patternType}-${Date.now()}.png`;
+      link.download = `pattern-${config.patternType}-${Date.now()}.png`;
       link.href = tempCanvas.toDataURL('image/png', 1.0);
       link.click();
     } catch (error) {
       console.error('Download failed:', error);
-      patternStore.error = `Download failed: ${error}`;
+      ui.error = `Download failed: ${error}`;
     } finally {
       setIsDownloading(false);
     }
@@ -139,12 +147,12 @@ export const PatternGenerator = observer(() => {
 
   const handleGenerateRandomPattern = useCallback(() => {
     try {
-      patternStore.clearError();
-      patternStore.generateRandomPattern();
+      ui.clearError();
+      actions.generateRandomPattern();
     } catch (error) {
       console.error('Failed to generate random pattern:', error);
     }
-  }, []);
+  }, [ui, actions]);
 
   return (
     <Card>
@@ -162,7 +170,7 @@ export const PatternGenerator = observer(() => {
           <Button
             onClick={handleGenerateRandomPattern}
             leftIcon={<Shuffle className="w-4 h-4" />}
-            disabled={patternStore.isGeneratingPattern()}
+            disabled={actions.isGeneratingPattern()}
           >
             Случайный
           </Button>
@@ -177,14 +185,14 @@ export const PatternGenerator = observer(() => {
                 <Download className="w-4 h-4" />
               )
             }
-            disabled={isDownloading || patternStore.getPointCount() === 0}
+            disabled={isDownloading || canvasActions.getPointCount() === 0}
           >
             {isDownloading ? 'Скачивание...' : 'Скачать'}
           </Button>
 
           <Button
             variant="secondary"
-            onClick={() => patternStore.toggleSettings()}
+            onClick={() => ui.toggleSettings()}
             leftIcon={<Settings className="w-4 h-4" />}
           >
             Настройки
@@ -193,17 +201,17 @@ export const PatternGenerator = observer(() => {
       </div>
 
       {/* Error Display */}
-      {patternStore.error && (
+      {ui.error && (
         <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-red-400 font-medium">Ошибка</p>
-            <p className="text-red-300 text-sm">{patternStore.error}</p>
+            <p className="text-red-300 text-sm">{ui.error}</p>
           </div>
           <Button
             variant="secondary"
             size="sm"
-            onClick={patternStore.clearError}
+            onClick={ui.clearError}
             className="text-red-400 hover:text-red-300"
           >
             ×
@@ -211,7 +219,7 @@ export const PatternGenerator = observer(() => {
         </div>
       )}
 
-      {patternStore.showSettings && (
+      {ui.showSettings && (
         <div className="glass rounded-lg p-4 mb-6">
           <h3 className="text-lg font-semibold text-white mb-4">
             Настройки узора
@@ -223,11 +231,9 @@ export const PatternGenerator = observer(() => {
                 Тип узора
               </label>
               <select
-                value={patternStore.patternType}
+                value={config.patternType}
                 onChange={(e) =>
-                  patternStore.setPatternType(
-                    e.target.value as PatternConfig['type']
-                  )
+                  config.setPatternType(e.target.value as PatternConfig['type'])
                 }
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
                 style={{
@@ -250,16 +256,16 @@ export const PatternGenerator = observer(() => {
             </div>
 
             <Slider
-              value={patternStore.patternComplexity}
-              onChange={patternStore.setComplexity}
+              value={config.patternComplexity}
+              onChange={config.setComplexity}
               min={1}
               max={10}
               label="Сложность"
             />
 
             <Slider
-              value={patternStore.patternDensity}
-              onChange={patternStore.setDensity}
+              value={config.patternDensity}
+              onChange={config.setDensity}
               min={0.5}
               max={3}
               step={0.1}
@@ -267,8 +273,8 @@ export const PatternGenerator = observer(() => {
             />
 
             <Slider
-              value={patternStore.animationSpeed}
-              onChange={patternStore.setAnimationSpeed}
+              value={animation.animationSpeed}
+              onChange={animation.setAnimationSpeed}
               min={0.1}
               max={5}
               step={0.1}
@@ -280,8 +286,8 @@ export const PatternGenerator = observer(() => {
             <label className="flex items-center gap-2 text-white/80">
               <input
                 type="checkbox"
-                checked={patternStore.patternAnimation}
-                onChange={(e) => patternStore.setAnimation(e.target.checked)}
+                checked={config.patternAnimation}
+                onChange={(e) => config.setAnimation(e.target.checked)}
                 className="rounded"
               />
               Анимация
@@ -290,8 +296,8 @@ export const PatternGenerator = observer(() => {
             <label className="flex items-center gap-2 text-white/80">
               <input
                 type="checkbox"
-                checked={patternStore.patternSymmetry}
-                onChange={(e) => patternStore.setSymmetry(e.target.checked)}
+                checked={config.patternSymmetry}
+                onChange={(e) => config.setSymmetry(e.target.checked)}
                 className="rounded"
               />
               Симметрия
@@ -303,18 +309,16 @@ export const PatternGenerator = observer(() => {
               Цвета
             </label>
             <div className="flex gap-2 flex-wrap">
-              {patternStore.patternColors.map((color, index) => (
+              {colors.patternColors.map((color, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <input
                     type="color"
                     value={color}
-                    onChange={(e) =>
-                      patternStore.updateColor(index, e.target.value)
-                    }
+                    onChange={(e) => colors.updateColor(index, e.target.value)}
                     className="w-8 h-8 rounded border border-white/20"
                   />
                   <button
-                    onClick={() => patternStore.removeColor(index)}
+                    onClick={() => colors.removeColor(index)}
                     className="text-red-400 hover:text-red-300 text-sm"
                   >
                     ×
@@ -322,7 +326,7 @@ export const PatternGenerator = observer(() => {
                 </div>
               ))}
               <button
-                onClick={patternStore.addColor}
+                onClick={colors.addColor}
                 className="w-8 h-8 rounded border-2 border-dashed border-white/40 flex items-center justify-center text-white/60 hover:border-white/60 hover:text-white/80"
               >
                 +

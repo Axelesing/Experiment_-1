@@ -42,6 +42,87 @@ export class PatternStore {
     // Don't generate pattern here - wait for canvas size
   }
 
+  /**
+   * Get pattern configuration data grouped by functionality
+   */
+  get config() {
+    return {
+      patternType: this.patternType,
+      patternComplexity: this.patternComplexity,
+      patternColors: this.patternColors,
+      patternDensity: this.patternDensity,
+      patternAnimation: this.patternAnimation,
+      patternSymmetry: this.patternSymmetry,
+      currentPattern: this.currentPattern,
+      setPatternType: this.setPatternType,
+      setComplexity: this.setComplexity,
+      setColors: this.setColors,
+      setDensity: this.setDensity,
+      setAnimation: this.setAnimation,
+      setSymmetry: this.setSymmetry,
+    };
+  }
+
+  /**
+   * Get animation data grouped by functionality
+   */
+  get animation() {
+    return {
+      animationSpeed: this.animationSpeed,
+      setAnimationSpeed: this.setAnimationSpeed,
+      updateAnimation: this.updateAnimation,
+    };
+  }
+
+  /**
+   * Get color management data grouped by functionality
+   */
+  get colors() {
+    return {
+      patternColors: this.patternColors,
+      setColors: this.setColors,
+      updateColor: this.updateColor,
+      addColor: this.addColor,
+      removeColor: this.removeColor,
+    };
+  }
+
+  /**
+   * Get canvas and rendering data grouped by functionality
+   */
+  get canvas() {
+    return {
+      setCanvasSize: this.setCanvasSize,
+      renderPattern: this.renderPattern,
+      getPointCount: this.getPointCount,
+      getCanvasSize: this.getCanvasSize,
+    };
+  }
+
+  /**
+   * Get UI state data grouped by functionality
+   */
+  get ui() {
+    return {
+      showSettings: this.showSettings,
+      toggleSettings: this.toggleSettings,
+      error: this.error,
+      clearError: this.clearError,
+    };
+  }
+
+  /**
+   * Get all actions grouped by functionality
+   */
+  get actions() {
+    return {
+      generateRandomPattern: this.generateRandomPattern,
+      getEngineConfig: this.getEngineConfig,
+      isGeneratingPattern: this.isGeneratingPattern,
+      dispose: this.dispose,
+    };
+  }
+
   setPatternType = (type: PatternConfig['type']) => {
     try {
       this.error = null;

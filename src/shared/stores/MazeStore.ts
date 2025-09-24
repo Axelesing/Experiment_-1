@@ -87,6 +87,106 @@ export class MazeStore {
   }
 
   /**
+   * Get maze data grouped by functionality
+   */
+  get mazeData() {
+    return {
+      maze: this.maze,
+      config: this.config,
+      error: this.error,
+      isLoading: this.isLoading,
+      updateConfig: this.updateConfig,
+      setError: this.setError,
+      clearMaze: this.clearMaze,
+    };
+  }
+
+  /**
+   * Get animation data grouped by functionality
+   */
+  get animation() {
+    return {
+      isAnimating: this.isAnimating,
+      animationSpeed: this.animationSpeed,
+      currentStep: this.currentStep,
+      setAnimationSpeed: this.setAnimationSpeed,
+      stopAnimation: this.stopAnimation,
+      generateMazeWithAnimation: this.generateMazeWithAnimation,
+    };
+  }
+
+  /**
+   * Get pathfinding data grouped by functionality
+   */
+  get pathfinding() {
+    return {
+      isPathfinding: this.isPathfinding,
+      currentPathfindingStep: this.currentPathfindingStep,
+      pathfindingResult: this.pathfindingResult,
+      pathfindingAlgorithm: this.pathfindingAlgorithm,
+      setPathfindingAlgorithm: this.setPathfindingAlgorithm,
+      solveMaze: this.solveMaze,
+      solveMazeWithAnimation: this.solveMazeWithAnimation,
+      stopPathfinding: this.stopPathfinding,
+      clearPathfinding: this.clearPathfinding,
+    };
+  }
+
+  /**
+   * Get history data grouped by functionality
+   */
+  get historyData() {
+    return {
+      history: this.history,
+      historyIndex: this.historyIndex,
+      goToPrevious: this.goToPrevious,
+      goToNext: this.goToNext,
+      clearHistory: this.clearHistory,
+      hasHistory: this.history.length > 0,
+      canGoPrevious: this.historyIndex > 0,
+      canGoNext: this.historyIndex < this.history.length - 1,
+    };
+  }
+
+  /**
+   * Get all actions grouped by functionality
+   */
+  get actions() {
+    return {
+      generateMaze: this.generateMaze,
+      generateMazeWithAnimation: this.generateMazeWithAnimation,
+      solveMaze: this.solveMaze,
+      solveMazeWithAnimation: this.solveMazeWithAnimation,
+      updateConfig: this.updateConfig,
+      setError: this.setError,
+      clearMaze: this.clearMaze,
+      goToPrevious: this.goToPrevious,
+      goToNext: this.goToNext,
+      clearHistory: this.clearHistory,
+      setAnimationSpeed: this.setAnimationSpeed,
+      stopAnimation: this.stopAnimation,
+      setPathfindingAlgorithm: this.setPathfindingAlgorithm,
+      stopPathfinding: this.stopPathfinding,
+      clearPathfinding: this.clearPathfinding,
+    };
+  }
+
+  /**
+   * Get canvas rendering data grouped by functionality
+   */
+  get canvasData() {
+    return {
+      maze: this.maze,
+      config: this.config,
+      currentStep: this.currentStep,
+      isAnimating: this.isAnimating,
+      currentPathfindingStep: this.currentPathfindingStep,
+      isPathfinding: this.isPathfinding,
+      pathfindingResult: this.pathfindingResult,
+    };
+  }
+
+  /**
    * Update maze configuration with validation
    *
    * @param configUpdate - Partial configuration to update

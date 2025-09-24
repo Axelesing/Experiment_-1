@@ -52,6 +52,61 @@ export class AsciiStore {
   }
 
   /**
+   * Get ASCII configuration data grouped by functionality
+   */
+  get configData() {
+    return {
+      config: this.config,
+      setConfig: this.setConfig,
+    };
+  }
+
+  /**
+   * Get UI state data grouped by functionality
+   */
+  get ui() {
+    return {
+      showSettings: this.showSettings,
+      toggleSettings: this.toggleSettings,
+      error: this.error,
+      setError: this.setError,
+      isLoading: this.isLoading,
+      setLoading: this.setLoading,
+    };
+  }
+
+  /**
+   * Get ASCII content data grouped by functionality
+   */
+  get content() {
+    return {
+      currentAscii: this.currentAscii,
+      hasContent: this.hasContent,
+      hasImage: this.hasImage,
+      uploadedImage: this.uploadedImage,
+      previewUrl: this.previewUrl,
+    };
+  }
+
+  /**
+   * Get all actions grouped by functionality
+   */
+  get actions() {
+    return {
+      generateRandomAscii: this.generateRandomAscii,
+      generatePatternAscii: this.generatePatternAscii,
+      exportAsText: this.exportAsText,
+      exportAsHtml: this.exportAsHtml,
+      exportAsJson: this.exportAsJson,
+      exportAsSvg: this.exportAsSvg,
+      clearAscii: this.clearAscii,
+      clearImage: this.clearImage,
+      reset: this.reset,
+      dispose: this.dispose,
+    };
+  }
+
+  /**
    * Computed property to check if there's content to display
    */
   get hasContent(): boolean {

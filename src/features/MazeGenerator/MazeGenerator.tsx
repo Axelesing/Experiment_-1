@@ -19,36 +19,13 @@ import { MazeControls } from './components/MazeControls';
  * @returns {JSX.Element} Rendered maze generator
  */
 export const MazeGenerator = observer(() => {
-  const {
-    config,
-    maze,
-    isLoading,
-    error,
-    history,
-    historyIndex,
-    isAnimating,
-    animationSpeed,
-    currentStep,
-    isPathfinding,
-    currentPathfindingStep,
-    pathfindingResult,
-    pathfindingAlgorithm,
-    updateConfig,
-    generateMaze,
-    generateMazeWithAnimation,
-    setAnimationSpeed,
-    stopAnimation,
-    solveMaze,
-    solveMazeWithAnimation,
-    setPathfindingAlgorithm,
-    stopPathfinding,
-    clearPathfinding,
-    clearMaze,
-    setError,
-    goToPrevious,
-    goToNext,
-    clearHistory,
-  } = mazeStore;
+  // Use grouped functionality from store
+  const mazeData = mazeStore.mazeData;
+  const animation = mazeStore.animation;
+  const pathfinding = mazeStore.pathfinding;
+  const history = mazeStore.historyData;
+  const actions = mazeStore.actions;
+  const canvasData = mazeStore.canvasData;
 
   const [showControls, setShowControls] = useState(false);
 
@@ -56,103 +33,103 @@ export const MazeGenerator = observer(() => {
    * Handle maze generation
    */
   const handleGenerateMaze = useCallback(async () => {
-    const result = await generateMaze();
+    const result = await actions.generateMaze();
     if (!result.success) {
-      setError(result.error || 'Failed to generate maze');
+      actions.setError(result.error || 'Failed to generate maze');
     }
-  }, [generateMaze, setError]);
+  }, [actions]);
 
   /**
    * Handle animated maze generation
    */
   const handleGenerateAnimated = useCallback(async () => {
-    const result = await generateMazeWithAnimation();
+    const result = await actions.generateMazeWithAnimation();
     if (!result.success) {
-      setError(result.error || 'Failed to generate maze');
+      actions.setError(result.error || 'Failed to generate maze');
     }
-  }, [generateMazeWithAnimation, setError]);
+  }, [actions]);
 
   /**
    * Handle maze solving
    */
   const handleSolveMaze = useCallback(async () => {
-    const result = await solveMaze();
+    const result = await actions.solveMaze();
     if (!result.success) {
-      setError(result.error || 'Failed to solve maze');
+      actions.setError(result.error || 'Failed to solve maze');
     }
-  }, [solveMaze, setError]);
+  }, [actions]);
 
   /**
    * Handle animated maze solving
    */
   const handleSolveMazeAnimated = useCallback(async () => {
-    const result = await solveMazeWithAnimation();
+    const result = await actions.solveMazeWithAnimation();
     if (!result.success) {
-      setError(result.error || 'Failed to solve maze');
+      actions.setError(result.error || 'Failed to solve maze');
     }
-  }, [solveMazeWithAnimation, setError]);
+  }, [actions]);
 
   /**
    * Handle configuration changes
    */
   const handleConfigChange = useCallback(
     (newConfig: Partial<MazeConfig>) => {
-      const result = updateConfig(newConfig);
+      const result = actions.updateConfig(newConfig);
       if (!result.success) {
-        setError(result.error || 'Invalid configuration');
+        actions.setError(result.error || 'Invalid configuration');
       }
     },
-    [updateConfig, setError]
+    [actions]
   );
 
   /**
    * Handle navigation to previous maze
    */
   const handlePrevious = useCallback(() => {
-    const result = goToPrevious();
+    const result = actions.goToPrevious();
     if (!result.success) {
-      setError(result.error || 'No previous maze');
+      actions.setError(result.error || 'No previous maze');
     }
-  }, [goToPrevious, setError]);
+  }, [actions]);
 
   /**
    * Handle navigation to next maze
    */
   const handleNext = useCallback(() => {
-    const result = goToNext();
+    const result = actions.goToNext();
     if (!result.success) {
-      setError(result.error || 'No next maze');
+      actions.setError(result.error || 'No next maze');
     }
-  }, [goToNext, setError]);
+  }, [actions]);
 
   /**
    * Handle clearing current maze
    */
   const handleClear = useCallback(() => {
-    clearMaze();
-    setError(null);
-  }, [clearMaze, setError]);
+    actions.clearMaze();
+    actions.setError(null);
+  }, [actions]);
 
   /**
    * Handle clearing history
    */
   const handleClearHistory = useCallback(() => {
-    clearHistory();
-    setError(null);
-  }, [clearHistory, setError]);
+    actions.clearHistory();
+    actions.setError(null);
+  }, [actions]);
 
   // Auto-generate maze on mount
   useEffect(() => {
-    if (!maze && !isLoading) {
+    if (!mazeData.maze && !mazeData.isLoading) {
       handleGenerateMaze();
     }
-  }, [maze, isLoading, handleGenerateMaze]);
+  }, [mazeData.maze, mazeData.isLoading, handleGenerateMaze]);
 
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
         console.error('MazeGenerator error:', error, errorInfo);
-        setError(`Произошла ошибка: ${error.message}`);
+        actions.setError(`Произошла ошибка: ${error.message}`);
       }}
     >
       <Card className="p-6">
@@ -173,56 +150,56 @@ export const MazeGenerator = observer(() => {
           </Button>
         </div>
 
-        {error && (
+        {mazeData.error && (
           <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-            <p className="text-red-300 text-sm">{error}</p>
+            <p className="text-red-300 text-sm">{mazeData.error}</p>
           </div>
         )}
 
         {showControls && (
           <MazeControls
-            config={config}
+            config={mazeData.config}
             onConfigChange={handleConfigChange}
             onGenerate={handleGenerateMaze}
             onGenerateAnimated={handleGenerateAnimated}
             onClear={handleClear}
             onClearHistory={handleClearHistory}
-            isLoading={isLoading}
-            isAnimating={isAnimating}
-            animationSpeed={animationSpeed}
-            onSetAnimationSpeed={setAnimationSpeed}
-            onStopAnimation={stopAnimation}
-            isPathfinding={isPathfinding}
-            pathfindingAlgorithm={pathfindingAlgorithm}
-            onSetPathfindingAlgorithm={setPathfindingAlgorithm}
+            isLoading={mazeData.isLoading}
+            isAnimating={animation.isAnimating}
+            animationSpeed={animation.animationSpeed}
+            onSetAnimationSpeed={animation.setAnimationSpeed}
+            onStopAnimation={animation.stopAnimation}
+            isPathfinding={pathfinding.isPathfinding}
+            pathfindingAlgorithm={pathfinding.pathfindingAlgorithm}
+            onSetPathfindingAlgorithm={pathfinding.setPathfindingAlgorithm}
             onSolveMaze={handleSolveMaze}
             onSolveMazeAnimated={handleSolveMazeAnimated}
-            onStopPathfinding={stopPathfinding}
-            onClearPathfinding={clearPathfinding}
-            hasHistory={history.length > 0}
-            canGoPrevious={historyIndex > 0}
-            canGoNext={historyIndex < history.length - 1}
+            onStopPathfinding={pathfinding.stopPathfinding}
+            onClearPathfinding={pathfinding.clearPathfinding}
+            hasHistory={history.hasHistory}
+            canGoPrevious={history.canGoPrevious}
+            canGoNext={history.canGoNext}
             onPrevious={handlePrevious}
             onNext={handleNext}
           />
         )}
 
         <div className="mt-6">
-          {maze ? (
+          {canvasData.maze ? (
             <div className="maze-container" style={{ touchAction: 'none' }}>
               <MazeCanvas
-                maze={maze}
-                config={config}
-                currentStep={currentStep}
-                isAnimating={isAnimating}
-                currentPathfindingStep={currentPathfindingStep}
-                isPathfinding={isPathfinding}
-                pathfindingResult={pathfindingResult}
+                maze={canvasData.maze}
+                config={canvasData.config}
+                currentStep={canvasData.currentStep}
+                isAnimating={canvasData.isAnimating}
+                currentPathfindingStep={canvasData.currentPathfindingStep}
+                isPathfinding={canvasData.isPathfinding}
+                pathfindingResult={canvasData.pathfindingResult}
               />
             </div>
           ) : (
             <div className="flex items-center justify-center h-96 bg-gray-800/50 rounded-lg border border-gray-700/50">
-              {isLoading ? (
+              {mazeData.isLoading ? (
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
                   <p className="text-white/70">Генерация лабиринта...</p>
@@ -236,16 +213,17 @@ export const MazeGenerator = observer(() => {
           )}
         </div>
 
-        {maze && (
+        {canvasData.maze && (
           <div className="mt-4 flex items-center justify-between text-sm text-white/60">
             <div>
-              Размер: {maze.width} × {maze.height} | Алгоритм:{' '}
-              {config.algorithm} | История: {history.length} лабиринтов
-              {pathfindingResult && (
+              Размер: {canvasData.maze.width} × {canvasData.maze.height} |
+              Алгоритм: {canvasData.config.algorithm} | История:{' '}
+              {history.history.length} лабиринтов
+              {pathfinding.pathfindingResult && (
                 <span className="ml-4">
                   | Решение:{' '}
-                  {pathfindingResult.found
-                    ? `${pathfindingResult.path.length} шагов (${pathfindingResult.algorithm})`
+                  {pathfinding.pathfindingResult.found
+                    ? `${pathfinding.pathfindingResult.path.length} шагов (${pathfinding.pathfindingResult.algorithm})`
                     : 'Не найдено'}
                 </span>
               )}
@@ -255,7 +233,7 @@ export const MazeGenerator = observer(() => {
                 variant="ghost"
                 size="sm"
                 onClick={handlePrevious}
-                disabled={historyIndex <= 0}
+                disabled={!history.canGoPrevious}
                 className="text-white/60 hover:text-white disabled:opacity-50"
                 aria-label="Go to previous maze"
               >
@@ -266,7 +244,7 @@ export const MazeGenerator = observer(() => {
                 variant="ghost"
                 size="sm"
                 onClick={handleNext}
-                disabled={historyIndex >= history.length - 1}
+                disabled={!history.canGoNext}
                 className="text-white/60 hover:text-white disabled:opacity-50"
                 aria-label="Go to next maze"
               >

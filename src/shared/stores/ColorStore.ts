@@ -31,6 +31,53 @@ export class ColorStore {
     this.loadFavorites();
   }
 
+  /**
+   * Get color configuration data grouped by functionality
+   */
+  get configData() {
+    return {
+      config: this.config,
+      setConfig: this.setConfig,
+    };
+  }
+
+  /**
+   * Get UI state data grouped by functionality
+   */
+  get ui() {
+    return {
+      showSettings: this.showSettings,
+      toggleSettings: this.toggleSettings,
+      isLoading: this.isLoading,
+      error: this.error,
+      setLoading: this.setLoading,
+      setError: this.setError,
+    };
+  }
+
+  /**
+   * Get palette data grouped by functionality
+   */
+  get palettes() {
+    return {
+      currentPalette: this.currentPalette,
+      paletteHistory: this.paletteHistory,
+      favoritePalettes: this.favoritePalettes,
+    };
+  }
+
+  /**
+   * Get all actions grouped by functionality
+   */
+  get actions() {
+    return {
+      generatePalette: this.generatePalette,
+      addToFavorites: this.addToFavorites,
+      removeFromFavorites: this.removeFromFavorites,
+      clearHistory: this.clearHistory,
+    };
+  }
+
   setConfig = (config: Partial<ColorConfig>) => {
     this.config = { ...this.config, ...config };
     this.engine.setConfig(this.config);

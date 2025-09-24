@@ -76,14 +76,58 @@ export class ParticleStore {
   }
 
   /**
-   * Computed property to get current particle configuration
+   * Get particle configuration data grouped by functionality
    */
   get config() {
     return {
-      count: this.particleCount,
-      size: this.particleSize,
-      speed: this.particleSpeed,
-      colors: this.colors,
+      particleCount: this.particleCount,
+      particleSize: this.particleSize,
+      particleSpeed: this.particleSpeed,
+      trailLength: this.trailLength,
+      particleInteraction: this.particleInteraction,
+      currentPreset: this.currentPreset,
+      setParticleCount: this.setParticleCount,
+      setParticleSize: this.setParticleSize,
+      setParticleSpeed: this.setParticleSpeed,
+      setTrailLength: this.setTrailLength,
+      setParticleInteraction: this.setParticleInteraction,
+      applyPreset: this.applyPreset,
+    };
+  }
+
+  /**
+   * Get interaction data grouped by functionality
+   */
+  get interaction() {
+    return {
+      isDrawing: this.isDrawing,
+      mousePosition: this.mousePosition,
+      setIsDrawing: this.setIsDrawing,
+      setMousePosition: this.setMousePosition,
+    };
+  }
+
+  /**
+   * Get animation data grouped by functionality
+   */
+  get animation() {
+    return {
+      lastUpdateTime: this.lastUpdateTime,
+      actualParticleCount: this.actualParticleCount,
+      updateParticles: this.updateParticles,
+      renderParticles: this.renderParticles,
+    };
+  }
+
+  /**
+   * Get all actions grouped by functionality
+   */
+  get actions() {
+    return {
+      clearParticles: this.clearParticles,
+      addParticleBurst: this.addParticleBurst,
+      setCanvasSize: this.setCanvasSize,
+      particles: this.particles,
     };
   }
 
